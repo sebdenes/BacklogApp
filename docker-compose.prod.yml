@@ -1,0 +1,18 @@
+services:
+  backlog:
+    image: ghcr.io/sebdenes/backlogapp:latest
+    container_name: backlog-app
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - backlog-data:/data
+    environment:
+      - DATA_DIR=/data
+      - BACKLOG_API_KEY=${BACKLOG_API_KEY:-}
+      - BACKLOG_WEBHOOK_SECRET=${BACKLOG_WEBHOOK_SECRET:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://backlog.athlai.me}
+      - APP_VERSION=${APP_VERSION:-latest}
+    restart: unless-stopped
+
+volumes:
+  backlog-data:

@@ -1,0 +1,3339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0e1a" />
+  <title>Backlog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+/* ── Reset & Variables ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e1a;
+  --bg-raised: #111827;
+  --card-bg: #1a2235;
+  --card-bg-hover: #1e2940;
+  --input-bg: #0f172a;
+  --border: #1e293b;
+  --border-hover: #334155;
+  --border-focus: #E8440A;
+  --accent: #E8440A;
+  --accent-hover: #d63d09;
+  --accent-muted: rgba(232, 68, 10, 0.10);
+  --accent-border: rgba(232, 68, 10, 0.35);
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --orange: #f59e0b;
+  --pink: #ec4899;
+  --text: #f0f0f8;
+  --text-secondary: #cbd5e1;
+  --muted: #94a3b8;
+  --subtle: #64748b;
+  --dim: #475569;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --font: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --transition: 0.15s ease;
+}
+
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--subtle); }
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 16px;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #E8440A, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.version { color: var(--dim); font-size: 11px; font-family: var(--font-mono); }
+
+.topbar-center { flex: 1; max-width: 420px; }
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--subtle);
+  pointer-events: none;
+}
+.search-box input {
+  width: 100%;
+  padding: 7px 12px 7px 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--dim); }
+
+.topbar-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.icon-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: var(--border-hover); }
+.icon-btn.active { background: var(--accent-muted); border-color: var(--accent-border); color: var(--accent); }
+
+/* ── Project bar ── */
+.project-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.project-bar::-webkit-scrollbar { display: none; }
+
+.project-tabs { display: flex; align-items: stretch; gap: 0; }
+
+.project-tab {
+  position: relative;
+  padding: 10px 16px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-tab:hover { color: var(--text-secondary); }
+.project-tab.active { color: var(--text); }
+.project-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+.project-tab .tab-count {
+  font-size: 10px;
+  background: rgba(255,255,255,0.06);
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+.project-tab.active .tab-count { background: var(--accent-muted); color: var(--accent); }
+
+.project-tab .tab-actions {
+  display: none;
+  gap: 2px;
+  margin-left: 4px;
+}
+.project-tab:hover .tab-actions,
+.project-tab.active .tab-actions { display: flex; }
+
+.tab-action-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--subtle);
+  cursor: pointer;
+  font-size: 10px;
+  transition: all var(--transition);
+}
+.tab-action-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+.tab-action-btn.delete:hover { color: var(--red); }
+
+.project-add-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 6px;
+  transition: all var(--transition);
+}
+.project-add-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-muted); }
+
+/* ── Main ── */
+.main { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
+
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color var(--transition);
+}
+.stat-card:hover { border-color: var(--border-hover); }
+.stat-label {
+  font-size: 10px;
+  color: var(--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+.stat-val {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.stat-val.c-p1 { color: var(--red); }
+.stat-val.c-p2 { color: var(--orange); }
+.stat-val.c-p3 { color: var(--green); }
+.stat-val.c-done { color: var(--dim); }
+.stat-val.c-total { color: #e5e5e5; }
+.stat-val.c-overdue { color: var(--red); }
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: rgba(255,255,255,0.15); color: #ccc; }
+.filter-btn.active { background: var(--accent-muted); border-color: var(--accent-border); color: var(--accent); }
+
+.toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; flex-shrink: 0; }
+.toolbar .spacer { flex: 1; }
+
+.sort-select {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  outline: none;
+}
+.sort-select option { background: var(--bg-raised); }
+
+.toolbar-btn {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: #ccc;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.toolbar-btn:hover { border-color: rgba(255,255,255,0.15); }
+.toolbar-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.toolbar-btn.primary:hover { background: var(--accent-hover); }
+.toolbar-btn.voice {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.toolbar-btn.voice svg { flex-shrink: 0; }
+
+/* ── Lanes ── */
+.lanes { }
+
+.lane {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+.lane.drag-over { border-color: var(--accent-border); background: var(--accent-muted); }
+
+.lane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+.lane-head:hover { background: rgba(255,255,255,0.02); }
+
+.lane-arrow {
+  font-size: 9px;
+  color: var(--dim);
+  transition: transform 0.2s ease;
+  width: 14px;
+  text-align: center;
+}
+.lane-arrow.open { transform: rotate(90deg); }
+
+.lane-title { font-size: 13px; font-weight: 600; flex: 1; }
+
+.lane-count {
+  font-size: 10px;
+  color: var(--dim);
+  background: rgba(255,255,255,0.04);
+  padding: 1px 8px;
+  border-radius: 99px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lane-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.lane-head:hover .lane-actions { opacity: 1; }
+
+.lane-action-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--subtle);
+  cursor: pointer;
+  font-size: 11px;
+}
+.lane-action-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+.lane-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  padding: 4px 10px 12px;
+}
+.lane-body.collapsed { display: none; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: all var(--transition);
+  position: relative;
+  cursor: grab;
+}
+.card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); background: var(--card-bg-hover); }
+.card.dragging { opacity: 0.4; transform: scale(0.98); }
+.card.drag-target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+
+.card-title { font-size: 13px; font-weight: 500; line-height: 1.4; flex: 1; }
+
+.card-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition);
+  flex-shrink: 0;
+}
+.card:hover .card-actions { opacity: 1; }
+
+.card-btn {
+  font-family: var(--font);
+  font-size: 10px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--subtle);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.card-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
+.card-btn.delete:hover { color: var(--red); }
+
+.card-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; align-items: center; }
+
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.tag-p1 { background: rgba(239,68,68,0.12); color: #f87171; }
+.tag-p2 { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.tag-p3 { background: rgba(16,185,129,0.12); color: #34d399; }
+.tag-eng { background: rgba(59,130,246,0.12); color: #60a5fa; }
+.tag-product { background: rgba(139,92,246,0.12); color: #a78bfa; }
+.tag-biz { background: rgba(236,72,153,0.12); color: #f472b6; }
+.tag-done { background: rgba(255,255,255,0.04); color: #555; }
+.tag-custom { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+.card-due {
+  font-size: 10px;
+  color: var(--subtle);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.card-due.overdue { color: var(--red); }
+.card-due.soon { color: var(--orange); }
+
+.card-voice-badge {
+  font-size: 10px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.card-voice-badge:hover { text-decoration: underline; }
+
+/* Done lane */
+.lane-done .card { opacity: 0.5; }
+.lane-done .card-title { text-decoration: line-through; color: var(--subtle); }
+
+/* ── Modals ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--bg-raised);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  width: 520px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(8px);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal-sm { width: 400px; }
+
+.modal h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+.field input, .field textarea, .field select {
+  font-family: var(--font);
+  font-size: 13px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+.field select option { background: var(--bg-raised); }
+
+.field-row { display: flex; gap: 12px; }
+.field-row .field { flex: 1; }
+
+.tag-select { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag-option {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--subtle);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.tag-option.sel { border-color: var(--accent-border); color: var(--accent); background: var(--accent-muted); }
+
+.tags-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--bg);
+  min-height: 36px;
+  cursor: text;
+  transition: border-color var(--transition);
+}
+.tags-input-container:focus-within { border-color: var(--accent); }
+.tags-input-container .tag-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.06);
+  color: var(--muted);
+}
+.tags-input-container .tag-chip .remove {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--subtle);
+  line-height: 1;
+}
+.tags-input-container .tag-chip .remove:hover { color: var(--red); }
+.tags-input-container input {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 2px 0;
+  outline: none;
+}
+
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.modal-actions .toolbar-btn { padding: 7px 18px; }
+
+/* Voice note section in modal */
+.voice-section {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: rgba(255,255,255,0.02);
+}
+.voice-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.voice-section-label { font-size: 11px; color: var(--subtle); text-transform: uppercase; letter-spacing: 0.05em; }
+.voice-record-btn {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition);
+}
+.voice-record-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+.voice-record-btn.recording { border-color: var(--red); color: var(--red); animation: pulse-glow 1.5s infinite; }
+.voice-transcription {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+.voice-audio { margin-top: 8px; width: 100%; height: 32px; }
+.voice-audio::-webkit-media-controls-panel { background: var(--bg); }
+
+/* ── Timeline panel ── */
+.timeline-panel {
+  background: var(--bg-raised);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius);
+  width: 90vw;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}
+.timeline-panel h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+
+.timeline-grid {
+  display: grid;
+  gap: 2px;
+  position: relative;
+}
+.timeline-header {
+  display: grid;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-raised);
+  z-index: 2;
+}
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.timeline-item-label {
+  font-size: 12px;
+  width: 220px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.timeline-bar-container { flex: 1; position: relative; height: 22px; }
+.timeline-bar {
+  position: absolute;
+  height: 18px;
+  border-radius: 4px;
+  top: 2px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 4px;
+}
+.timeline-bar.p1 { background: var(--red); }
+.timeline-bar.p2 { background: var(--orange); }
+.timeline-bar.p3 { background: var(--green); }
+.timeline-bar.done { background: var(--dim); opacity: 0.5; }
+.timeline-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  z-index: 1;
+}
+.timeline-today::before {
+  content: 'Today';
+  position: absolute;
+  top: -18px;
+  left: -16px;
+  font-size: 9px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.timeline-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--subtle);
+  font-size: 13px;
+}
+
+/* ── Voice indicator ── */
+.voice-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-raised);
+  border: 1px solid var(--red);
+  border-radius: 99px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.3s ease;
+  z-index: 2000;
+}
+.voice-indicator.active { transform: translateX(-50%) translateY(0); }
+
+.voice-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse-glow 1.5s infinite;
+}
+
+.voice-stop {
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--red);
+  background: rgba(239,68,68,0.12);
+  color: var(--red);
+  cursor: pointer;
+}
+.voice-stop:hover { background: rgba(239,68,68,0.2); }
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+
+/* ── Toast ── */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  animation: toast-in 0.3s ease;
+  max-width: 320px;
+}
+.toast.info { background: var(--bg-raised); border: 1px solid var(--border); }
+.toast.success { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); }
+.toast.error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--subtle);
+}
+.empty-state h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+.empty-state p { font-size: 13px; margin-bottom: 16px; }
+
+/* ── Quick add bar ── */
+.quick-add-bar {
+  padding: 12px 24px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.quick-add-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+}
+.quick-add-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.quick-add-bar input {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.quick-add-bar input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+.quick-add-bar input::placeholder { color: var(--dim); }
+
+.quick-add-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.quick-add-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.quick-add-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); border-color: var(--border-hover); }
+.quick-add-btn.recording { border-color: var(--red); color: var(--red); animation: pulse-glow 1.5s infinite; }
+
+/* AI suggestion panel */
+.ai-suggestion {
+  margin-top: 10px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  animation: suggestion-in 0.25s ease;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@keyframes suggestion-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-suggestion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ai-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ai-confidence {
+  font-size: 10px;
+  color: var(--subtle);
+  font-family: var(--font-mono);
+}
+.ai-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ai-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  min-width: 100px;
+}
+.ai-chip-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--subtle);
+}
+.ai-chip-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+.ai-chip-value .tag { font-size: 11px; }
+.ai-chip.editable { cursor: pointer; transition: border-color var(--transition); }
+.ai-chip.editable:hover { border-color: var(--accent-border); }
+
+.ai-title-preview {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.ai-desc-preview {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ai-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 1400px;
+  margin: 10px auto 0;
+}
+.ai-thinking-dots {
+  display: flex;
+  gap: 3px;
+}
+.ai-thinking-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dot-bounce 1.2s infinite;
+}
+.ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── Touch drag clone ── */
+.touch-drag-clone {
+  border: 2px solid var(--accent) !important;
+  border-radius: var(--radius-sm);
+  background: var(--card-bg) !important;
+}
+
+/* ── Responsive: Tablet ── */
+@media (max-width: 1024px) {
+  .lane-body { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .stats-row { grid-template-columns: repeat(3, 1fr); }
+  .timeline-content { padding: 16px; }
+}
+
+/* ── Responsive: Mobile (≤ 768px) ── */
+@media (max-width: 768px) {
+  /* Topbar: compact layout */
+  .topbar { padding: 10px 14px; gap: 10px; }
+  .topbar-left .logo { font-size: 16px; }
+  .topbar-left .version { display: none; }
+  .topbar-center { display: none; }
+
+  /* Project bar: horizontal scroll with smaller tabs */
+  .project-bar { padding: 0 12px; }
+  .project-tab { padding: 8px 12px; font-size: 11px; }
+  .project-tab .tab-actions { display: none !important; }
+  .project-add-btn { width: 24px; height: 24px; font-size: 14px; }
+
+  /* Quick add bar */
+  .quick-add-bar { padding: 10px 14px; }
+  .quick-add-inner input { font-size: 14px; /* prevents iOS zoom */ }
+  .ai-suggestion { padding: 12px; }
+  .ai-chips { gap: 6px; }
+  .ai-chip { padding: 5px 10px; }
+  .ai-actions { flex-wrap: wrap; gap: 6px; }
+
+  /* Main content */
+  .main { padding: 12px 10px 80px; }  /* extra bottom padding for mobile reach */
+
+  /* Stats row: 2-column grid on mobile */
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat-card { padding: 8px 12px; }
+  .stat-label { font-size: 9px; }
+  .stat-val { font-size: 18px; }
+
+  /* Toolbar: wrap and stack */
+  .toolbar { gap: 6px; margin-bottom: 12px; }
+  .filter-btn { padding: 6px 12px; font-size: 11px; }
+  .toolbar-sep { display: none; }
+  .sort-select { font-size: 11px; }
+  .toolbar-btn { padding: 6px 12px; font-size: 11px; }
+
+  /* Lanes: single column cards */
+  .lane-body { grid-template-columns: 1fr; gap: 6px; padding: 4px 8px 10px; }
+  .lane-head { padding: 10px 12px; }
+  .lane-title { font-size: 13px; }
+  .lane-actions { opacity: 1; } /* always show on mobile - no hover */
+
+  /* Cards: touch-friendly sizing */
+  .card { padding: 14px; }
+  .card-actions { opacity: 1; } /* always visible on mobile */
+  .card-btn { width: 28px; height: 28px; font-size: 12px; }
+  .card-title { font-size: 14px; }
+  .card-desc { font-size: 12px; -webkit-line-clamp: 3; }
+  .card-meta { gap: 5px; }
+  .tag { font-size: 10px; padding: 3px 8px; }
+
+  /* Modals: full-screen on mobile */
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    width: 100%;
+    max-width: 100vw;
+    max-height: 92vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 20px 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  .modal-sm { width: 100%; }
+  .modal h3 { font-size: 16px; }
+  .field input, .field textarea, .field select { font-size: 16px; /* prevents iOS zoom */ padding: 10px 12px; }
+  .field textarea { min-height: 80px; }
+  .field-row { flex-direction: column; gap: 0; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .toolbar-btn { flex: 1; min-width: 0; text-align: center; padding: 10px; }
+
+  /* Timeline: full-screen panel */
+  .timeline-panel {
+    width: 100%;
+    max-width: 100vw;
+    border-radius: 0;
+  }
+  .timeline-header { padding: 14px 16px; }
+  .timeline-content { padding: 12px; }
+  .tl-row-label { min-width: 80px; font-size: 10px; }
+  .tl-bar { height: 18px; font-size: 9px; min-width: 12px; }
+
+  /* Voice indicator */
+  .voice-indicator { bottom: 20px; left: 14px; right: 14px; border-radius: var(--radius-sm); }
+
+  /* Toast: full width at bottom */
+  .toast-container { left: 10px; right: 10px; bottom: 10px; }
+  .toast { width: 100%; max-width: none; font-size: 13px; }
+
+  /* Search: show as mobile search bar below topbar */
+  .mobile-search { display: block; }
+}
+
+/* ── Responsive: Small phones (≤ 380px) ── */
+@media (max-width: 380px) {
+  .topbar { padding: 8px 10px; }
+  .topbar-left .logo { font-size: 14px; }
+  .icon-btn { width: 30px; height: 30px; }
+  .main { padding: 10px 8px 80px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .stat-val { font-size: 16px; }
+  .card { padding: 12px; }
+  .card-title { font-size: 13px; }
+  .project-tab { padding: 7px 10px; font-size: 10px; }
+  .modal { padding: 16px 12px; }
+}
+
+/* ── Touch & safe areas ── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .main { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+  .quick-add-bar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+
+/* ── Disable hover effects on touch devices ── */
+@media (hover: none) and (pointer: coarse) {
+  .card:hover { transform: none; background: var(--card-bg); border-color: var(--border); }
+  .card-actions { opacity: 1; }
+  .lane-actions { opacity: 1; }
+  .lane-head:hover { background: transparent; }
+  .project-tab .tab-actions { display: none !important; }
+  /* Larger tap targets */
+  .card-btn { width: 32px; height: 32px; }
+  .lane-action-btn { width: 28px; height: 28px; }
+  .icon-btn { width: 38px; height: 38px; }
+  .filter-btn { padding: 8px 14px; }
+  .toolbar-btn { padding: 8px 16px; }
+  .tag-option { padding: 8px 14px; }
+}
+
+</style>
+</head>
+<body>
+
+  <!-- ── Top bar ── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="logo">Backlog</h1>
+      <span class="version">v2.0</span>
+    </div>
+    <div class="topbar-center">
+      <div class="search-box">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" id="global-search" placeholder="Search items… (⌘K)" autocomplete="off" />
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="btn-timeline" title="Timeline view">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-settings" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Project selector ── -->
+  <nav class="project-bar">
+    <div class="project-tabs" id="project-tabs"></div>
+    <button class="project-add-btn" id="btn-add-project" title="New project">+</button>
+  </nav>
+
+  <!-- ── Quick add bar ── -->
+  <div class="quick-add-bar" id="quick-add-bar">
+    <div class="quick-add-inner">
+      <svg class="quick-add-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <input type="text" id="quick-add-input" placeholder="Quick add — type anything and AI will classify it… (Q)" autocomplete="off" />
+      <div class="quick-add-actions">
+        <button class="quick-add-btn" id="quick-add-voice-btn" title="Voice input">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        </button>
+        <button class="quick-add-btn" id="quick-add-settings-btn" title="AI settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- AI suggestion panel -->
+    <div class="ai-suggestion" id="ai-suggestion" style="display:none">
+      <div class="ai-suggestion-header">
+        <span class="ai-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          AI Classification
+        </span>
+        <span class="ai-confidence" id="ai-confidence"></span>
+      </div>
+      <div class="ai-chips" id="ai-chips"></div>
+      <div class="ai-actions">
+        <button class="toolbar-btn" id="ai-dismiss">Dismiss</button>
+        <button class="toolbar-btn" id="ai-edit">Edit &amp; save</button>
+        <button class="toolbar-btn primary" id="ai-accept">Accept &amp; add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AI Settings modal ── -->
+  <div class="modal-overlay" id="ai-settings-overlay">
+    <div class="modal modal-sm" id="ai-settings-modal"></div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <main class="main">
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="toolbar"></div>
+
+    <!-- Lanes container -->
+    <div class="lanes" id="lanes-container"></div>
+  </main>
+
+  <!-- ── Item modal ── -->
+  <div class="modal-overlay" id="item-modal-overlay">
+    <div class="modal" id="item-modal"></div>
+  </div>
+
+  <!-- ── Project modal ── -->
+  <div class="modal-overlay" id="project-modal-overlay">
+    <div class="modal modal-sm" id="project-modal"></div>
+  </div>
+
+  <!-- ── Lane modal ── -->
+  <div class="modal-overlay" id="lane-modal-overlay">
+    <div class="modal modal-sm" id="lane-modal"></div>
+  </div>
+
+  <!-- ── Timeline overlay ── -->
+  <div class="modal-overlay" id="timeline-overlay">
+    <div class="timeline-panel" id="timeline-panel"></div>
+  </div>
+
+  <!-- ── Voice note indicator ── -->
+  <div class="voice-indicator" id="voice-indicator">
+    <div class="voice-pulse"></div>
+    <span>Recording…</span>
+    <button class="voice-stop" id="voice-stop">Stop</button>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+/* ═══════════════════════════════════════════════════════════
+   Backlog — standalone multi-project kanban board
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  // ── Storage keys ──
+  const STORAGE_KEY = 'backlog_projects';
+  const ACTIVE_KEY  = 'backlog_active_project';
+  const API_KEY_STORE = 'backlog_claude_api_key';
+
+  // ── State ──
+  let projects     = [];
+  let activeId     = null;
+  let filters      = new Set();
+  let searchQuery  = '';
+  let sortBy       = 'manual';   // manual | priority | date | due | alpha
+  let editingItem  = null;
+  let dragState    = { itemId: null, sourceLaneId: null };
+
+  // ── Voice state ──
+  let mediaRecorder  = null;
+  let audioChunks    = [];
+  let isRecording    = false;
+  let modalRecording = false;
+  let modalAudioBlob = null;
+  let modalTranscript = '';
+
+  // ── Helpers ──
+  const $ = id => document.getElementById(id);
+  const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+  const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+  const today = () => new Date().toISOString().split('T')[0];
+
+  // ── Persistence (localStorage + backend sync) ──
+  let _syncTimer = null;
+  let _backendAvailable = null; // null = unknown, true/false after first probe
+
+  function _getApiBase() {
+    if (location.protocol === 'https:' || location.protocol === 'http:') {
+      return location.origin;
+    }
+    return '';
+  }
+
+  async function _syncToBackend() {
+    const base = _getApiBase();
+    if (!base || _backendAvailable === false) return;
+    try {
+      const resp = await fetch(base + '/api/backlog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(projects),
+      });
+      if (resp.ok) {
+        _backendAvailable = true;
+      } else {
+        _backendAvailable = false;
+        console.debug('Backend sync disabled (status ' + resp.status + ')');
+      }
+    } catch (e) {
+      _backendAvailable = false;
+      console.debug('Backend sync disabled:', e.message);
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+      localStorage.setItem(ACTIVE_KEY, activeId);
+    } catch (e) { console.warn('Save failed', e); }
+    // Debounced backend sync (2s after last save)
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(_syncToBackend, 2000);
+  }
+
+  async function _loadFromBackend() {
+    const base = _getApiBase();
+    if (!base) return false;
+    try {
+      const resp = await fetch(base + '/api/backlog');
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      if (Array.isArray(data) && data.length > 0) {
+        _backendAvailable = true;
+        // Only use backend data if localStorage is empty or backend is newer
+        const localRaw = localStorage.getItem(STORAGE_KEY);
+        if (!localRaw || !JSON.parse(localRaw).length) {
+          projects = data;
+          activeId = projects[0]?.id;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+          localStorage.setItem(ACTIVE_KEY, activeId);
+          return true;
+        }
+      }
+    } catch (e) {
+      console.debug('Backend load skipped:', e.message);
+    }
+    return false;
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        projects = JSON.parse(raw);
+        activeId = localStorage.getItem(ACTIVE_KEY) || (projects[0] && projects[0].id);
+      }
+    } catch (e) { projects = []; }
+
+    if (!projects.length) {
+      seedDefault();
+    }
+    if (!activeId || !projects.find(p => p.id === activeId)) {
+      activeId = projects[0].id;
+    }
+
+    // Try loading from backend (non-blocking)
+    _loadFromBackend().then(loaded => {
+      if (loaded) render();
+    });
+  }
+
+  function getProject() { return projects.find(p => p.id === activeId); }
+
+  // ── Toast ──
+  function toast(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    $('toast-container').appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2800);
+  }
+
+  // ── Default project (first-run seed) ──
+  function seedDefault() {
+    const today = new Date().toISOString().slice(0, 10);
+    projects = [{
+      id: uid(),
+      name: 'My Project',
+      types: ['eng', 'product', 'biz'],
+      typeLabels: { eng: 'Engineering', product: 'Product', biz: 'Business' },
+      lanes: [
+        {
+          id: 'backlog', title: 'Backlog', collapsed: false,
+          items: [
+            { id: uid(), title: 'Welcome to BacklogApp!', desc: 'Use Quick Add above to type or voice-dictate items. AI will auto-classify priority, type, and lane.', priority: 'p2', type: 'product', created: today, due: '', tags: ['getting-started'], voiceNote: null },
+          ]
+        },
+        {
+          id: 'in-progress', title: 'In progress', collapsed: false,
+          items: []
+        },
+        {
+          id: 'review', title: 'Review', collapsed: false,
+          items: []
+        },
+        {
+          id: 'done', title: 'Done', collapsed: true,
+          items: []
+        }
+      ]
+    }];
+    activeId = projects[0].id;
+    save();
+  }
+
+  // ── Data helpers ──
+  function allItems(proj) {
+    const p = proj || getProject();
+    if (!p) return [];
+    const items = [];
+    p.lanes.forEach(l => l.items.forEach(i => items.push({ ...i, laneId: l.id, laneTitle: l.title })));
+    return items;
+  }
+
+  function findItem(id, proj) {
+    const p = proj || getProject();
+    for (const l of p.lanes) { const it = l.items.find(x => x.id === id); if (it) return it; }
+    return null;
+  }
+
+  function findLaneOfItem(id, proj) {
+    const p = proj || getProject();
+    for (const l of p.lanes) { if (l.items.some(x => x.id === id)) return l.id; }
+    return null;
+  }
+
+  function getStats() {
+    const p = getProject();
+    if (!p) return { total: 0, p1: 0, p2: 0, p3: 0, done: 0, open: 0, overdue: 0 };
+    let total = 0, p1 = 0, p2 = 0, p3 = 0, done = 0, overdue = 0;
+    const now = today();
+    p.lanes.forEach(l => l.items.forEach(i => {
+      total++;
+      if (i.priority === 'p1') p1++;
+      if (i.priority === 'p2') p2++;
+      if (i.priority === 'p3') p3++;
+      if (i.priority === 'done') done++;
+      if (i.due && i.due < now && i.priority !== 'done') overdue++;
+    }));
+    return { total, p1, p2, p3, done, open: total - done, overdue };
+  }
+
+  function itemVisible(item) {
+    // Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = item.title.toLowerCase().includes(q);
+      const matchDesc = item.desc.toLowerCase().includes(q);
+      const matchTags = (item.tags || []).some(t => t.toLowerCase().includes(q));
+      if (!matchTitle && !matchDesc && !matchTags) return false;
+    }
+    // Tag/priority/type filters
+    if (filters.size === 0) return true;
+    for (const f of filters) {
+      if (item.priority === f || item.type === f) return true;
+      if ((item.tags || []).includes(f)) return true;
+    }
+    return false;
+  }
+
+  function sortItems(items) {
+    if (sortBy === 'manual') return items;
+    const copy = [...items];
+    const prioOrder = { p1: 0, p2: 1, p3: 2, done: 3 };
+    switch (sortBy) {
+      case 'priority': copy.sort((a, b) => (prioOrder[a.priority] || 9) - (prioOrder[b.priority] || 9)); break;
+      case 'date':     copy.sort((a, b) => (b.created || '').localeCompare(a.created || '')); break;
+      case 'due':      copy.sort((a, b) => { if (!a.due) return 1; if (!b.due) return -1; return a.due.localeCompare(b.due); }); break;
+      case 'alpha':    copy.sort((a, b) => a.title.localeCompare(b.title)); break;
+    }
+    return copy;
+  }
+
+  function getAllTags() {
+    const p = getProject();
+    if (!p) return [];
+    const tagSet = new Set();
+    p.lanes.forEach(l => l.items.forEach(i => (i.tags || []).forEach(t => tagSet.add(t))));
+    return [...tagSet].sort();
+  }
+
+  function getDueStatus(due) {
+    if (!due) return '';
+    const now = new Date(); now.setHours(0,0,0,0);
+    const d = new Date(due + 'T00:00:00');
+    const diff = Math.ceil((d - now) / 86400000);
+    if (diff < 0) return 'overdue';
+    if (diff <= 3) return 'soon';
+    return '';
+  }
+
+  function formatDate(d) {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  RENDER
+  // ═════════════════════════════════════════════════════
+
+  function render() {
+    renderProjectTabs();
+    renderStats();
+    renderToolbar();
+    renderLanes();
+  }
+
+  // ── Project tabs ──
+  function renderProjectTabs() {
+    const container = $('project-tabs');
+    container.innerHTML = projects.map(p => {
+      const count = p.lanes.reduce((s, l) => s + l.items.filter(i => i.priority !== 'done').length, 0);
+      const isActive = p.id === activeId;
+      return `<button class="project-tab${isActive ? ' active' : ''}" data-id="${p.id}">
+        ${esc(p.name)}
+        <span class="tab-count">${count}</span>
+        <span class="tab-actions">
+          <span class="tab-action-btn" data-action="edit-project" data-id="${p.id}" title="Rename">✎</span>
+          ${projects.length > 1 ? `<span class="tab-action-btn delete" data-action="delete-project" data-id="${p.id}" title="Delete">✕</span>` : ''}
+        </span>
+      </button>`;
+    }).join('');
+
+    container.querySelectorAll('.project-tab').forEach(tab => {
+      tab.addEventListener('click', e => {
+        if (e.target.closest('.tab-action-btn')) return;
+        activeId = tab.dataset.id;
+        save();
+        filters.clear();
+        searchQuery = '';
+        $('global-search').value = '';
+        render();
+      });
+    });
+
+    container.querySelectorAll('.tab-action-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (btn.dataset.action === 'edit-project') openProjectModal(btn.dataset.id);
+        if (btn.dataset.action === 'delete-project') deleteProject(btn.dataset.id);
+      });
+    });
+  }
+
+  // ── Stats ──
+  function renderStats() {
+    const s = getStats();
+    $('stats-row').innerHTML =
+      `<div class="stat-card"><div class="stat-label">Open</div><div class="stat-val c-total">${s.open}</div></div>` +
+      `<div class="stat-card"><div class="stat-label">P1 now</div><div class="stat-val c-p1">${s.p1}</div></div>` +
+      `<div class="stat-card"><div class="stat-label">P2 next</div><div class="stat-val c-p2">${s.p2}</div></div>` +
+      `<div class="stat-card"><div class="stat-label">P3 later</div><div class="stat-val c-p3">${s.p3}</div></div>` +
+      (s.overdue ? `<div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-val c-overdue">${s.overdue}</div></div>` : '') +
+      `<div class="stat-card"><div class="stat-label">Shipped</div><div class="stat-val c-done">${s.done}</div></div>`;
+  }
+
+  // ── Toolbar ──
+  function renderToolbar() {
+    const p = getProject();
+    if (!p) return;
+
+    const priFilters = [
+      { key: 'p1', label: 'P1 — now' }, { key: 'p2', label: 'P2 — next' }, { key: 'p3', label: 'P3 — later' },
+    ];
+    const typeFilters = (p.types || ['eng', 'product', 'biz']).map(t => ({
+      key: t, label: (p.typeLabels && p.typeLabels[t]) || t
+    }));
+    const tagFilters = getAllTags().slice(0, 8).map(t => ({ key: t, label: '#' + t }));
+
+    $('toolbar').innerHTML =
+      priFilters.map(f => `<button class="filter-btn${filters.has(f.key) ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`).join('') +
+      '<span class="toolbar-sep"></span>' +
+      typeFilters.map(f => `<button class="filter-btn${filters.has(f.key) ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`).join('') +
+      (tagFilters.length ? '<span class="toolbar-sep"></span>' + tagFilters.map(f => `<button class="filter-btn${filters.has(f.key) ? ' active' : ''}" data-filter="${f.key}">${f.label}</button>`).join('') : '') +
+      '<span class="spacer"></span>' +
+      `<select class="sort-select" id="sort-select">
+        <option value="manual"${sortBy === 'manual' ? ' selected' : ''}>Manual order</option>
+        <option value="priority"${sortBy === 'priority' ? ' selected' : ''}>By priority</option>
+        <option value="due"${sortBy === 'due' ? ' selected' : ''}>By due date</option>
+        <option value="date"${sortBy === 'date' ? ' selected' : ''}>By created</option>
+        <option value="alpha"${sortBy === 'alpha' ? ' selected' : ''}>A-Z</option>
+      </select>` +
+      '<button class="toolbar-btn" id="btn-export">Export</button>' +
+      '<button class="toolbar-btn" id="btn-import">Import</button>' +
+      `<button class="toolbar-btn voice" id="btn-voice" title="Voice note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        Voice
+      </button>` +
+      '<button class="toolbar-btn" id="btn-add-lane">+ Lane</button>' +
+      '<button class="toolbar-btn primary" id="btn-add-item">+ Add item</button>';
+
+    // Bind events
+    $('toolbar').querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.filter;
+        if (filters.has(k)) filters.delete(k); else filters.add(k);
+        render();
+      });
+    });
+    $('sort-select').addEventListener('change', e => { sortBy = e.target.value; renderLanes(); });
+    $('btn-export').addEventListener('click', exportProject);
+    $('btn-import').addEventListener('click', importProject);
+    $('btn-add-item').addEventListener('click', () => openItemModal());
+    $('btn-add-lane').addEventListener('click', () => openLaneModal());
+    $('btn-voice').addEventListener('click', startQuickVoice);
+  }
+
+  // ── Lanes ──
+  function renderLanes() {
+    const p = getProject();
+    const container = $('lanes-container');
+    if (!p) { container.innerHTML = '<div class="empty-state"><h4>No project selected</h4></div>'; return; }
+    if (!p.lanes.length) {
+      container.innerHTML = '<div class="empty-state"><h4>No lanes yet</h4><p>Create a lane to start organizing your backlog.</p></div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    p.lanes.forEach(lane => {
+      const vis = sortItems(lane.items.filter(itemVisible));
+      const isDone = lane.id === 'done';
+      const div = document.createElement('div');
+      div.className = 'lane' + (isDone ? ' lane-done' : '');
+      div.dataset.laneId = lane.id;
+
+      div.innerHTML =
+        `<div class="lane-head" data-lane="${lane.id}">
+          <span class="lane-arrow${lane.collapsed ? '' : ' open'}">&#9654;</span>
+          <span class="lane-title">${esc(lane.title)}</span>
+          <span class="lane-count">${vis.length}</span>
+          <span class="lane-actions">
+            <button class="lane-action-btn" data-action="edit-lane" data-lane="${lane.id}" title="Edit lane">✎</button>
+            <button class="lane-action-btn" data-action="add-to-lane" data-lane="${lane.id}" title="Add item here">+</button>
+            ${p.lanes.length > 1 ? `<button class="lane-action-btn" data-action="delete-lane" data-lane="${lane.id}" title="Delete lane">✕</button>` : ''}
+          </span>
+        </div>
+        <div class="lane-body${lane.collapsed ? ' collapsed' : ''}" data-lane-body="${lane.id}">
+          ${vis.map(item => renderCard(item, isDone)).join('')}
+        </div>`;
+
+      container.appendChild(div);
+    });
+
+    // Bind lane heads
+    container.querySelectorAll('.lane-head').forEach(head => {
+      head.addEventListener('click', e => {
+        if (e.target.closest('.lane-action-btn')) return;
+        const lane = p.lanes.find(l => l.id === head.dataset.lane);
+        if (lane) { lane.collapsed = !lane.collapsed; save(); renderLanes(); }
+      });
+    });
+
+    // Bind lane actions
+    container.querySelectorAll('.lane-action-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const laneId = btn.dataset.lane;
+        if (action === 'edit-lane') openLaneModal(laneId);
+        if (action === 'add-to-lane') openItemModal(null, laneId);
+        if (action === 'delete-lane') deleteLane(laneId);
+      });
+    });
+
+    // Bind card actions
+    container.querySelectorAll('.card-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'edit') openItemModal(findItem(id));
+        else if (action === 'archive') archiveItem(id);
+        else if (action === 'reopen') reopenItem(id);
+        else if (action === 'delete') deleteItem(id);
+      });
+    });
+
+    // Bind voice badges
+    container.querySelectorAll('.card-voice-badge').forEach(badge => {
+      badge.addEventListener('click', e => {
+        e.stopPropagation();
+        const item = findItem(badge.dataset.id);
+        if (item && item.voiceNote) playVoiceNote(item.voiceNote);
+      });
+    });
+
+    // ── Drag & drop (cross-lane) ──
+    setupDragDrop();
+  }
+
+  function renderCard(item, isDone) {
+    const dueStatus = getDueStatus(item.due);
+    const tags = (item.tags || []);
+    return `<div class="card" data-id="${item.id}" draggable="true">
+      <div class="card-head">
+        <div class="card-title">${esc(item.title)}</div>
+        <div class="card-actions">
+          <button class="card-btn" data-action="edit" data-id="${item.id}" title="Edit">&#9998;</button>
+          <button class="card-btn" data-action="${isDone ? 'reopen' : 'archive'}" data-id="${item.id}" title="${isDone ? 'Reopen' : 'Done'}">${isDone ? '&#8634;' : '&#10003;'}</button>
+          <button class="card-btn delete" data-action="delete" data-id="${item.id}" title="Delete">&#10005;</button>
+        </div>
+      </div>
+      ${item.desc ? `<div class="card-desc">${esc(item.desc)}</div>` : ''}
+      <div class="card-meta">
+        ${item.priority !== 'done' ? `<span class="tag tag-${item.priority}">${item.priority.toUpperCase()}</span>` : ''}
+        ${item.type !== 'done' ? `<span class="tag tag-${item.type}">${esc(getTypeLabel(item.type))}</span>` : `<span class="tag tag-done">Done</span>`}
+        ${tags.map(t => `<span class="tag tag-custom">#${esc(t)}</span>`).join('')}
+        ${item.due ? `<span class="card-due ${dueStatus}">&#128197; ${formatDate(item.due)}</span>` : ''}
+        ${item.voiceNote ? `<span class="card-voice-badge" data-id="${item.id}">&#127908; Voice</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function getTypeLabel(type) {
+    const p = getProject();
+    return (p && p.typeLabels && p.typeLabels[type]) || type;
+  }
+
+  // ── Drag & drop ──
+  function setupDragDrop() {
+    const cards = document.querySelectorAll('.card[draggable]');
+    const laneBodies = document.querySelectorAll('.lane-body');
+
+    cards.forEach(card => {
+      card.addEventListener('dragstart', e => {
+        dragState.itemId = card.dataset.id;
+        dragState.sourceLaneId = card.closest('.lane').dataset.laneId;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.drag-target').forEach(el => el.classList.remove('drag-target'));
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        dragState = { itemId: null, sourceLaneId: null };
+      });
+    });
+
+    // Allow drop on cards (reorder within/across lanes)
+    cards.forEach(card => {
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-target');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-target'));
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        card.classList.remove('drag-target');
+        const targetId = card.dataset.id;
+        if (!dragState.itemId || dragState.itemId === targetId) return;
+        moveItem(dragState.itemId, dragState.sourceLaneId, card.closest('.lane').dataset.laneId, targetId);
+      });
+    });
+
+    // Allow drop on lane bodies (drop at end of lane)
+    laneBodies.forEach(lb => {
+      lb.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        lb.closest('.lane').classList.add('drag-over');
+      });
+      lb.addEventListener('dragleave', e => {
+        if (!lb.contains(e.relatedTarget)) lb.closest('.lane').classList.remove('drag-over');
+      });
+      lb.addEventListener('drop', e => {
+        e.preventDefault();
+        lb.closest('.lane').classList.remove('drag-over');
+        if (e.target.closest('.card')) return; // handled by card drop
+        const targetLaneId = lb.dataset.laneBody;
+        if (!dragState.itemId) return;
+        moveItem(dragState.itemId, dragState.sourceLaneId, targetLaneId, null);
+      });
+    });
+  }
+
+  function moveItem(itemId, srcLaneId, dstLaneId, beforeItemId) {
+    const p = getProject();
+    const srcLane = p.lanes.find(l => l.id === srcLaneId);
+    const dstLane = p.lanes.find(l => l.id === dstLaneId);
+    if (!srcLane || !dstLane) return;
+
+    const si = srcLane.items.findIndex(i => i.id === itemId);
+    if (si < 0) return;
+    const [moved] = srcLane.items.splice(si, 1);
+
+    // If moving to done lane, update status
+    if (dstLane.id === 'done' && moved.priority !== 'done') {
+      moved.priority = 'done';
+      moved.type = 'done';
+    }
+    // If moving out of done lane, restore
+    if (srcLane.id === 'done' && dstLane.id !== 'done' && moved.priority === 'done') {
+      moved.priority = 'p2';
+      moved.type = p.types ? p.types[0] : 'eng';
+    }
+
+    if (beforeItemId) {
+      const di = dstLane.items.findIndex(i => i.id === beforeItemId);
+      dstLane.items.splice(di, 0, moved);
+    } else {
+      dstLane.items.push(moved);
+    }
+
+    save();
+    render();
+  }
+
+  // ── Touch drag & drop for mobile ──
+  function setupTouchDragDrop() {
+    if (!('ontouchstart' in window)) return; // desktop only uses native DnD
+
+    let touchDrag = null; // { card, clone, itemId, sourceLaneId, startX, startY }
+    const HOLD_MS = 300;
+    let holdTimer = null;
+
+    document.addEventListener('touchstart', e => {
+      const card = e.target.closest('.card[draggable]');
+      if (!card) return;
+      const touch = e.touches[0];
+      holdTimer = setTimeout(() => {
+        // Start drag
+        const rect = card.getBoundingClientRect();
+        const clone = card.cloneNode(true);
+        clone.classList.add('touch-drag-clone');
+        clone.style.cssText = `
+          position:fixed; z-index:9999; width:${rect.width}px;
+          pointer-events:none; opacity:0.85; transform:rotate(2deg);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          left:${rect.left}px; top:${rect.top}px;
+        `;
+        document.body.appendChild(clone);
+        card.classList.add('dragging');
+
+        touchDrag = {
+          card, clone,
+          itemId: card.dataset.id,
+          sourceLaneId: card.closest('.lane').dataset.laneId,
+          offsetX: touch.clientX - rect.left,
+          offsetY: touch.clientY - rect.top,
+        };
+        navigator.vibrate && navigator.vibrate(30);
+      }, HOLD_MS);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+      if (holdTimer && !touchDrag) { clearTimeout(holdTimer); holdTimer = null; return; }
+      if (!touchDrag) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      touchDrag.clone.style.left = (touch.clientX - touchDrag.offsetX) + 'px';
+      touchDrag.clone.style.top = (touch.clientY - touchDrag.offsetY) + 'px';
+
+      // Highlight drop target
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (elem) {
+        const lane = elem.closest('.lane');
+        if (lane) lane.classList.add('drag-over');
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', e => {
+      clearTimeout(holdTimer); holdTimer = null;
+      if (!touchDrag) return;
+
+      const touch = e.changedTouches[0];
+      touchDrag.clone.remove();
+      touchDrag.card.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+      // Find drop target
+      const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (elem) {
+        const targetCard = elem.closest('.card[draggable]');
+        const targetLane = elem.closest('.lane');
+
+        if (targetCard && targetCard.dataset.id !== touchDrag.itemId) {
+          moveItem(touchDrag.itemId, touchDrag.sourceLaneId, targetLane.dataset.laneId, targetCard.dataset.id);
+        } else if (targetLane) {
+          moveItem(touchDrag.itemId, touchDrag.sourceLaneId, targetLane.dataset.laneId, null);
+        }
+      }
+      touchDrag = null;
+    }, { passive: true });
+  }
+
+  // ── Mobile search toggle ──
+  function setupMobileSearch() {
+    const searchInput = $('global-search');
+    const topbar = document.querySelector('.topbar');
+    if (!searchInput || !topbar) return;
+
+    // On mobile, repurpose the settings button area for a search toggle
+    if (window.innerWidth <= 768) {
+      const searchToggle = document.createElement('button');
+      searchToggle.className = 'icon-btn';
+      searchToggle.id = 'btn-mobile-search';
+      searchToggle.title = 'Search';
+      searchToggle.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+      document.querySelector('.topbar-right').prepend(searchToggle);
+
+      // Create mobile search bar
+      const mobileBar = document.createElement('div');
+      mobileBar.className = 'mobile-search-bar';
+      mobileBar.style.cssText = `
+        display:none; padding:8px 14px; background:var(--bg-raised);
+        border-bottom:1px solid var(--border);
+      `;
+      mobileBar.innerHTML = `<input type="text" id="mobile-search-input" placeholder="Search items…"
+        style="width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);
+        background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;outline:none;" />`;
+      topbar.after(mobileBar);
+
+      searchToggle.addEventListener('click', () => {
+        const visible = mobileBar.style.display !== 'none';
+        mobileBar.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+          const mInput = document.getElementById('mobile-search-input');
+          mInput.focus();
+          mInput.addEventListener('input', e => {
+            searchQuery = e.target.value.toLowerCase();
+            render();
+          });
+        }
+      });
+    }
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  ITEM CRUD
+  // ═════════════════════════════════════════════════════
+
+  function archiveItem(id) {
+    const p = getProject();
+    let doneLane = p.lanes.find(l => l.id === 'done');
+    if (!doneLane) {
+      doneLane = { id: 'done', title: 'Done', collapsed: true, items: [] };
+      p.lanes.push(doneLane);
+    }
+    const laneId = findLaneOfItem(id);
+    const lane = p.lanes.find(l => l.id === laneId);
+    const item = lane.items.find(i => i.id === id);
+    lane.items = lane.items.filter(i => i.id !== id);
+    item.priority = 'done'; item.type = 'done';
+    doneLane.items.unshift(item);
+    save(); render();
+    toast('Marked as done');
+  }
+
+  function reopenItem(id) {
+    const p = getProject();
+    const doneLane = p.lanes.find(l => l.id === 'done');
+    if (!doneLane) return;
+    const item = doneLane.items.find(i => i.id === id);
+    if (!item) return;
+    doneLane.items = doneLane.items.filter(i => i.id !== id);
+    item.priority = 'p2';
+    item.type = p.types ? p.types[0] : 'eng';
+    p.lanes[0].items.push(item);
+    save(); render();
+    toast('Reopened');
+  }
+
+  function deleteItem(id) {
+    if (!confirm('Delete this item permanently?')) return;
+    const p = getProject();
+    p.lanes.forEach(l => { l.items = l.items.filter(i => i.id !== id); });
+    save(); render();
+    toast('Item deleted', 'error');
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  ITEM MODAL
+  // ═════════════════════════════════════════════════════
+
+  function openItemModal(item, defaultLaneId) {
+    editingItem = item || null;
+    modalAudioBlob = (item && item.voiceNote) ? item.voiceNote : null;
+    modalTranscript = (item && item.voiceTranscript) || '';
+    const p = getProject();
+    const overlay = $('item-modal-overlay');
+    const modal = $('item-modal');
+
+    const laneOpts = p.lanes.filter(l => l.id !== 'done').map(l => {
+      const selected = item ? findLaneOfItem(item.id) === l.id : (defaultLaneId ? l.id === defaultLaneId : false);
+      return `<option value="${l.id}"${selected ? ' selected' : ''}>${esc(l.title)}</option>`;
+    }).join('');
+
+    const typeButtons = (p.types || ['eng', 'product', 'biz']).map(t => {
+      const label = (p.typeLabels && p.typeLabels[t]) || t;
+      const sel = item ? item.type === t : t === (p.types || ['eng'])[0];
+      return `<button class="tag-option${sel ? ' sel' : ''}" data-val="${t}">${esc(label)}</button>`;
+    }).join('');
+
+    const existingTags = (item && item.tags) ? item.tags : [];
+
+    modal.innerHTML =
+      `<h3>${item ? 'Edit item' : 'New item'}</h3>
+      <div class="field"><label>Title</label><input id="m-title" value="${item ? esc(item.title) : ''}" placeholder="What needs to be done" /></div>
+      <div class="field"><label>Description</label><textarea id="m-desc" placeholder="Context, acceptance criteria, notes…">${item ? esc(item.desc) : ''}</textarea></div>
+      <div class="field-row">
+        <div class="field"><label>Swimlane</label><select id="m-lane">${laneOpts}</select></div>
+        <div class="field"><label>Due date</label><input type="date" id="m-due" value="${item ? (item.due || '') : ''}" /></div>
+      </div>
+      <div class="field"><label>Priority</label><div class="tag-select" id="m-priority">
+        <button class="tag-option${(!item || item.priority === 'p1') ? ' sel' : ''}" data-val="p1">P1 — now</button>
+        <button class="tag-option${(item && item.priority === 'p2') ? ' sel' : ''}" data-val="p2">P2 — next</button>
+        <button class="tag-option${(item && item.priority === 'p3') ? ' sel' : ''}" data-val="p3">P3 — later</button>
+      </div></div>
+      <div class="field"><label>Type</label><div class="tag-select" id="m-type">${typeButtons}</div></div>
+      <div class="field"><label>Tags</label>
+        <div class="tags-input-container" id="m-tags-container">
+          ${existingTags.map(t => `<span class="tag-chip">${esc(t)}<span class="remove" data-tag="${esc(t)}">&times;</span></span>`).join('')}
+          <input id="m-tags-input" placeholder="Type and press Enter" />
+        </div>
+      </div>
+      <div class="voice-section" id="m-voice-section">
+        <div class="voice-section-head">
+          <span class="voice-section-label">Voice note</span>
+          <button class="voice-record-btn" id="m-voice-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            Record
+          </button>
+        </div>
+        ${modalAudioBlob ? '<audio class="voice-audio" id="m-voice-audio" controls></audio>' : ''}
+        ${modalTranscript ? `<div class="voice-transcription" id="m-voice-transcript">${esc(modalTranscript)}</div>` : ''}
+      </div>
+      <div class="modal-actions">
+        <button class="toolbar-btn" id="m-cancel">Cancel</button>
+        <button class="toolbar-btn primary" id="m-save">Save</button>
+      </div>`;
+
+    overlay.classList.add('open');
+    setTimeout(() => $('m-title').focus(), 80);
+
+    // If we have audio blob, set audio src
+    if (modalAudioBlob && $('m-voice-audio')) {
+      if (typeof modalAudioBlob === 'string') {
+        $('m-voice-audio').src = modalAudioBlob;
+      } else {
+        $('m-voice-audio').src = URL.createObjectURL(modalAudioBlob);
+      }
+    }
+
+    // Tag select buttons
+    modal.querySelectorAll('.tag-select .tag-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.tag-option').forEach(b => b.classList.remove('sel'));
+        btn.classList.add('sel');
+      });
+    });
+
+    // Tags input
+    setupTagsInput();
+
+    // Voice recording in modal
+    $('m-voice-btn').addEventListener('click', toggleModalVoice);
+
+    // Actions
+    $('m-cancel').addEventListener('click', closeItemModal);
+    $('m-save').addEventListener('click', saveItemModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeItemModal(); });
+  }
+
+  function setupTagsInput() {
+    const container = $('m-tags-container');
+    const input = $('m-tags-input');
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        e.preventDefault();
+        addTagChip(input.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, ''));
+        input.value = '';
+      }
+      if (e.key === 'Backspace' && !input.value) {
+        const chips = container.querySelectorAll('.tag-chip');
+        if (chips.length) chips[chips.length - 1].remove();
+      }
+    });
+
+    container.addEventListener('click', e => {
+      if (e.target.classList.contains('remove')) {
+        e.target.closest('.tag-chip').remove();
+      } else {
+        input.focus();
+      }
+    });
+  }
+
+  function addTagChip(tag) {
+    if (!tag) return;
+    const container = $('m-tags-container');
+    const input = $('m-tags-input');
+    // Check for duplicates
+    const existing = [...container.querySelectorAll('.tag-chip')].map(c => c.textContent.replace('×', '').trim());
+    if (existing.includes(tag)) return;
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.innerHTML = `${esc(tag)}<span class="remove" data-tag="${esc(tag)}">&times;</span>`;
+    container.insertBefore(chip, input);
+  }
+
+  function getModalTags() {
+    const container = $('m-tags-container');
+    return [...container.querySelectorAll('.tag-chip')].map(c => c.textContent.replace('×', '').trim()).filter(Boolean);
+  }
+
+  function getSelVal(containerId) {
+    const s = $(containerId).querySelector('.sel');
+    return s ? s.dataset.val : null;
+  }
+
+  function closeItemModal() {
+    $('item-modal-overlay').classList.remove('open');
+    editingItem = null;
+    if (modalRecording) stopModalVoice();
+    modalAudioBlob = null;
+    modalTranscript = '';
+  }
+
+  function saveItemModal() {
+    const title = $('m-title').value.trim();
+    if (!title) { $('m-title').focus(); return; }
+    const desc = $('m-desc').value.trim();
+    const laneId = $('m-lane').value;
+    const due = $('m-due').value || '';
+    const priority = getSelVal('m-priority') || 'p2';
+    const type = getSelVal('m-type') || 'eng';
+    const tags = getModalTags();
+    const p = getProject();
+
+    // Convert audio blob to data URL for persistence
+    let voiceNote = modalAudioBlob;
+    let voiceTranscript = modalTranscript;
+
+    const finishSave = (vn) => {
+      if (editingItem) {
+        editingItem.title = title;
+        editingItem.desc = desc;
+        editingItem.priority = priority;
+        editingItem.type = type;
+        editingItem.due = due;
+        editingItem.tags = tags;
+        if (vn !== undefined) editingItem.voiceNote = vn;
+        if (voiceTranscript) editingItem.voiceTranscript = voiceTranscript;
+        const curLane = findLaneOfItem(editingItem.id);
+        if (curLane !== laneId) {
+          p.lanes.find(l => l.id === curLane).items = p.lanes.find(l => l.id === curLane).items.filter(i => i.id !== editingItem.id);
+          p.lanes.find(l => l.id === laneId).items.push(editingItem);
+        }
+      } else {
+        const newItem = { id: uid(), title, desc, priority, type, created: today(), due, tags, voiceNote: vn || null, voiceTranscript: voiceTranscript || '' };
+        const lane = p.lanes.find(l => l.id === laneId);
+        if (lane) lane.items.push(newItem);
+      }
+      save();
+      closeItemModal();
+      render();
+      toast(editingItem ? 'Item updated' : 'Item added', 'success');
+    };
+
+    // If we have a new blob, convert to data URL
+    if (voiceNote && voiceNote instanceof Blob) {
+      const reader = new FileReader();
+      reader.onloadend = () => finishSave(reader.result);
+      reader.readAsDataURL(voiceNote);
+    } else {
+      finishSave(voiceNote);
+    }
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  VOICE NOTES
+  // ═════════════════════════════════════════════════════
+
+  async function toggleModalVoice() {
+    if (modalRecording) {
+      stopModalVoice();
+    } else {
+      startModalVoice();
+    }
+  }
+
+  async function startModalVoice() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        modalAudioBlob = blob;
+        stream.getTracks().forEach(t => t.stop());
+
+        // Show audio player in modal
+        const section = $('m-voice-section');
+        let audio = $('m-voice-audio');
+        if (!audio) {
+          audio = document.createElement('audio');
+          audio.className = 'voice-audio';
+          audio.id = 'm-voice-audio';
+          audio.controls = true;
+          section.appendChild(audio);
+        }
+        audio.src = URL.createObjectURL(blob);
+
+        // Try speech-to-text
+        transcribeAudio();
+      };
+      mediaRecorder.start();
+      modalRecording = true;
+      $('m-voice-btn').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop';
+      $('m-voice-btn').classList.add('recording');
+    } catch (err) {
+      toast('Microphone access denied', 'error');
+    }
+  }
+
+  function stopModalVoice() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    modalRecording = false;
+    $('m-voice-btn').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> Record';
+    $('m-voice-btn').classList.remove('recording');
+  }
+
+  function transcribeAudio() {
+    // Use Web Speech API for live transcription approach
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) return;
+    // Note: Web Speech API works for live capture. For recorded audio we show a note.
+    const section = $('m-voice-section');
+    let transcript = section.querySelector('.voice-transcription');
+    if (!transcript) {
+      transcript = document.createElement('div');
+      transcript.className = 'voice-transcription';
+      transcript.id = 'm-voice-transcript';
+      section.appendChild(transcript);
+    }
+    transcript.textContent = 'Voice note attached. Play back using the audio player above.';
+  }
+
+  // Quick voice note from toolbar
+  async function startQuickVoice() {
+    if (isRecording) { stopQuickVoice(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        stream.getTracks().forEach(t => t.stop());
+        $('voice-indicator').classList.remove('active');
+        isRecording = false;
+
+        // Open a new item modal with the recording attached
+        modalAudioBlob = blob;
+        openItemModal();
+      };
+      mediaRecorder.start();
+      isRecording = true;
+      $('voice-indicator').classList.add('active');
+      $('voice-stop').onclick = stopQuickVoice;
+
+      // Also use speech recognition for live transcription
+      startLiveTranscription();
+    } catch (err) {
+      toast('Microphone access denied', 'error');
+    }
+  }
+
+  function stopQuickVoice() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    stopLiveTranscription();
+  }
+
+  // Live speech recognition
+  let speechRecognition = null;
+
+  function startLiveTranscription() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    speechRecognition = new SpeechRecognition();
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = true;
+    speechRecognition.lang = 'en-US';
+    let finalTranscript = '';
+    speechRecognition.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + ' ';
+        else interim += e.results[i][0].transcript;
+      }
+      modalTranscript = finalTranscript.trim();
+    };
+    speechRecognition.onerror = () => {};
+    speechRecognition.start();
+  }
+
+  function stopLiveTranscription() {
+    if (speechRecognition) {
+      try { speechRecognition.stop(); } catch (e) {}
+      speechRecognition = null;
+    }
+  }
+
+  function playVoiceNote(dataUrl) {
+    const audio = new Audio(dataUrl);
+    audio.play();
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  PROJECT CRUD
+  // ═════════════════════════════════════════════════════
+
+  function openProjectModal(editId) {
+    const overlay = $('project-modal-overlay');
+    const modal = $('project-modal');
+    const existing = editId ? projects.find(p => p.id === editId) : null;
+
+    modal.innerHTML =
+      `<h3>${existing ? 'Edit project' : 'New project'}</h3>
+      <div class="field"><label>Name</label><input id="pm-name" value="${existing ? esc(existing.name) : ''}" placeholder="Project name" /></div>
+      <div class="field"><label>Item types (comma-separated)</label>
+        <input id="pm-types" value="${existing ? (existing.types || []).join(', ') : 'eng, product, biz'}" placeholder="e.g. eng, product, biz, design" />
+      </div>
+      <div class="modal-actions">
+        ${existing ? `<button class="toolbar-btn" id="pm-delete" style="margin-right:auto;color:var(--red)">Delete project</button>` : ''}
+        <button class="toolbar-btn" id="pm-cancel">Cancel</button>
+        <button class="toolbar-btn primary" id="pm-save">Save</button>
+      </div>`;
+
+    overlay.classList.add('open');
+    setTimeout(() => $('pm-name').focus(), 80);
+
+    $('pm-cancel').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+    $('pm-save').addEventListener('click', () => {
+      const name = $('pm-name').value.trim();
+      if (!name) return;
+      const types = $('pm-types').value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+      const typeLabels = {};
+      types.forEach(t => { typeLabels[t] = t.charAt(0).toUpperCase() + t.slice(1); });
+
+      if (existing) {
+        existing.name = name;
+        existing.types = types;
+        existing.typeLabels = typeLabels;
+      } else {
+        const newProj = {
+          id: uid(),
+          name,
+          types,
+          typeLabels,
+          lanes: [
+            { id: uid(), title: 'To do', collapsed: false, items: [] },
+            { id: uid(), title: 'In progress', collapsed: false, items: [] },
+            { id: 'done', title: 'Done', collapsed: true, items: [] },
+          ]
+        };
+        projects.push(newProj);
+        activeId = newProj.id;
+      }
+      save();
+      overlay.classList.remove('open');
+      render();
+      toast(existing ? 'Project updated' : 'Project created', 'success');
+    });
+
+    if (existing && $('pm-delete')) {
+      $('pm-delete').addEventListener('click', () => { deleteProject(editId); overlay.classList.remove('open'); });
+    }
+  }
+
+  function deleteProject(id) {
+    if (projects.length <= 1) { toast('Cannot delete the only project', 'error'); return; }
+    if (!confirm('Delete this project and all its items?')) return;
+    projects = projects.filter(p => p.id !== id);
+    if (activeId === id) activeId = projects[0].id;
+    save(); render();
+    toast('Project deleted', 'error');
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  LANE CRUD
+  // ═════════════════════════════════════════════════════
+
+  function openLaneModal(editLaneId) {
+    const overlay = $('lane-modal-overlay');
+    const modal = $('lane-modal');
+    const p = getProject();
+    const existing = editLaneId ? p.lanes.find(l => l.id === editLaneId) : null;
+
+    modal.innerHTML =
+      `<h3>${existing ? 'Edit lane' : 'New lane'}</h3>
+      <div class="field"><label>Name</label><input id="lm-name" value="${existing ? esc(existing.title) : ''}" placeholder="Lane name" /></div>
+      <div class="modal-actions">
+        <button class="toolbar-btn" id="lm-cancel">Cancel</button>
+        <button class="toolbar-btn primary" id="lm-save">Save</button>
+      </div>`;
+
+    overlay.classList.add('open');
+    setTimeout(() => $('lm-name').focus(), 80);
+
+    $('lm-cancel').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+    $('lm-save').addEventListener('click', () => {
+      const name = $('lm-name').value.trim();
+      if (!name) return;
+      if (existing) {
+        existing.title = name;
+      } else {
+        p.lanes.splice(p.lanes.length - (p.lanes.some(l => l.id === 'done') ? 1 : 0), 0, {
+          id: uid(),
+          title: name,
+          collapsed: false,
+          items: []
+        });
+      }
+      save();
+      overlay.classList.remove('open');
+      render();
+      toast(existing ? 'Lane updated' : 'Lane added', 'success');
+    });
+  }
+
+  function deleteLane(laneId) {
+    const p = getProject();
+    const lane = p.lanes.find(l => l.id === laneId);
+    if (!lane) return;
+    if (lane.items.length && !confirm(`Delete "${lane.title}" and its ${lane.items.length} items?`)) return;
+    if (!lane.items.length && !confirm(`Delete lane "${lane.title}"?`)) return;
+    p.lanes = p.lanes.filter(l => l.id !== laneId);
+    save(); render();
+    toast('Lane deleted');
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  IMPORT / EXPORT
+  // ═════════════════════════════════════════════════════
+
+  function exportProject() {
+    const p = getProject();
+    const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `backlog_${p.name.toLowerCase().replace(/\s+/g, '_')}_${today()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Exported ' + p.name);
+  }
+
+  function importProject() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.lanes) {
+            // Ensure items have new fields
+            data.lanes.forEach(l => l.items.forEach(i => {
+              if (!i.tags) i.tags = [];
+              if (!i.due) i.due = '';
+              if (!i.voiceNote) i.voiceNote = null;
+            }));
+            // If it looks like a single project
+            if (!data.id) data.id = uid();
+            if (!data.name) data.name = file.name.replace('.json', '');
+            if (!data.types) data.types = ['eng', 'product', 'biz'];
+            if (!data.typeLabels) data.typeLabels = { eng: 'Engineering', product: 'Product', biz: 'Business' };
+            projects.push(data);
+            activeId = data.id;
+            save(); render();
+            toast('Imported: ' + data.name, 'success');
+          }
+        } catch (err) { toast('Invalid file', 'error'); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  TIMELINE VIEW
+  // ═════════════════════════════════════════════════════
+
+  function openTimeline() {
+    const overlay = $('timeline-overlay');
+    const panel = $('timeline-panel');
+    const p = getProject();
+
+    // Gather items with due dates
+    const items = allItems(p).filter(i => i.due && i.priority !== 'done');
+    items.sort((a, b) => a.due.localeCompare(b.due));
+
+    if (!items.length) {
+      panel.innerHTML = `<h3>Timeline <button class="icon-btn" id="tl-close" style="float:right">&#10005;</button></h3>
+        <div class="timeline-empty">No items with due dates. Add due dates to see them on the timeline.</div>`;
+      overlay.classList.add('open');
+      $('tl-close').addEventListener('click', () => overlay.classList.remove('open'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+      return;
+    }
+
+    // Determine date range
+    const now = new Date();
+    const earliest = new Date(Math.min(now.getTime(), new Date(items[0].due + 'T00:00:00').getTime()) - 7 * 86400000);
+    const latest = new Date(items[items.length - 1].due + 'T00:00:00');
+    latest.setDate(latest.getDate() + 14);
+    const totalDays = Math.ceil((latest - earliest) / 86400000);
+    const todayOffset = Math.ceil((now - earliest) / 86400000);
+
+    // Build weeks header
+    const weeks = [];
+    const d = new Date(earliest);
+    while (d <= latest) {
+      weeks.push(new Date(d));
+      d.setDate(d.getDate() + 7);
+    }
+
+    const rows = items.map(item => {
+      const created = item.created ? new Date(item.created + 'T00:00:00') : earliest;
+      const due = new Date(item.due + 'T00:00:00');
+      const startPct = Math.max(0, (created - earliest) / (latest - earliest) * 100);
+      const endPct = Math.min(100, (due - earliest) / (latest - earliest) * 100);
+      const width = Math.max(1, endPct - startPct);
+      return `<div class="timeline-row">
+        <div class="timeline-item-label" title="${esc(item.title)}">${esc(item.title)}</div>
+        <div class="timeline-bar-container">
+          <div class="timeline-bar ${item.priority}" style="left:${startPct}%;width:${width}%">${formatDate(item.due)}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    const todayPct = (todayOffset / totalDays) * 100;
+
+    panel.innerHTML =
+      `<h3>Timeline — ${esc(p.name)} <button class="icon-btn" id="tl-close">&#10005;</button></h3>
+      <div style="position:relative">
+        <div class="timeline-header" style="margin-left:232px;display:flex;gap:0">
+          ${weeks.map(w => `<div style="flex:1;text-align:center;padding:4px">${w.toLocaleDateString('en-GB', { day:'numeric', month:'short' })}</div>`).join('')}
+        </div>
+        <div style="position:relative">
+          <div class="timeline-today" style="left:calc(232px + ${todayPct}%)"></div>
+          ${rows}
+        </div>
+      </div>`;
+
+    overlay.classList.add('open');
+    $('tl-close').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  KEYBOARD SHORTCUTS
+  // ═════════════════════════════════════════════════════
+
+  document.addEventListener('keydown', e => {
+    // Close modals on Escape
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay.open').forEach(o => o.classList.remove('open'));
+      if (isRecording) stopQuickVoice();
+      return;
+    }
+    // Don't trigger shortcuts in inputs
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      // Cmd+K in search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); $('global-search').focus(); }
+      return;
+    }
+    // Cmd+K — focus search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); $('global-search').focus(); return; }
+    // N — new item
+    if (e.key === 'n') { e.preventDefault(); openItemModal(); return; }
+    // T — timeline
+    if (e.key === 't') { e.preventDefault(); openTimeline(); return; }
+    // V — voice
+    if (e.key === 'v') { e.preventDefault(); startQuickVoice(); return; }
+  });
+
+  // ── Search ──
+  $('global-search').addEventListener('input', e => {
+    searchQuery = e.target.value.trim();
+    renderLanes();
+  });
+
+  // ── Top bar buttons ──
+  $('btn-timeline').addEventListener('click', openTimeline);
+  $('btn-add-project').addEventListener('click', () => openProjectModal());
+  $('btn-settings').addEventListener('click', () => openProjectModal(activeId));
+
+  // ═════════════════════════════════════════════════════
+  //  AI CLASSIFIER
+  // ═════════════════════════════════════════════════════
+
+  let pendingClassification = null;
+
+  // ── Keyword dictionaries for heuristic classification ──
+  const PRIORITY_SIGNALS = {
+    p1: ['urgent', 'critical', 'asap', 'blocker', 'must', 'immediately', 'breaking', 'now', 'ship', 'launch', 'deadline', 'today', 'hotfix', 'p1', 'showstopper', 'emergency'],
+    p2: ['should', 'next', 'soon', 'important', 'need', 'want', 'improve', 'enhance', 'p2', 'medium', 'plan'],
+    p3: ['nice to have', 'someday', 'maybe', 'later', 'low', 'consider', 'explore', 'idea', 'p3', 'backlog', 'wishlist', 'eventually']
+  };
+
+  const TYPE_SIGNALS = {
+    eng: ['bug', 'fix', 'code', 'api', 'database', 'backend', 'frontend', 'deploy', 'infra', 'test', 'refactor', 'performance', 'integration', 'sdk', 'library', 'docker', 'ci', 'cd', 'pipeline', 'server', 'endpoint', 'migration', 'schema', 'cache', 'debug', 'error', 'crash', 'auth', 'security', 'ssl', 'dns', 'devops', 'monitoring', 'log', 'architecture', 'microservice', 'webhook', 'socket', 'grpc', 'rest', 'graphql'],
+    product: ['feature', 'user', 'ux', 'ui', 'design', 'flow', 'onboarding', 'experience', 'feedback', 'research', 'prototype', 'wireframe', 'persona', 'journey', 'story', 'requirement', 'spec', 'mockup', 'analytics', 'metric', 'kpi', 'ab test', 'survey', 'interview', 'usability'],
+    biz: ['pricing', 'revenue', 'legal', 'contract', 'payment', 'billing', 'subscription', 'marketing', 'sales', 'partnership', 'investor', 'pitch', 'fundraise', 'budget', 'cost', 'roi', 'compliance', 'gdpr', 'tax', 'invoice', 'brand', 'pr', 'press', 'launch', 'go-to-market', 'strategy', 'competitor']
+  };
+
+  const TAG_SIGNALS = {
+    'api': ['api', 'endpoint', 'rest', 'graphql', 'webhook', 'sdk'],
+    'ml': ['ml', 'machine learning', 'model', 'training', 'neural', 'ai', 'prediction', 'classification', 'nlp'],
+    'ai': ['ai', 'artificial intelligence', 'llm', 'gpt', 'claude', 'agent', 'agentic', 'prompt'],
+    'mobile': ['mobile', 'ios', 'android', 'app', 'responsive', 'pwa'],
+    'security': ['security', 'auth', 'authentication', 'encryption', 'vulnerability', 'penetration', 'ssl', 'oauth'],
+    'data': ['database', 'data', 'migration', 'schema', 'sql', 'nosql', 'analytics', 'etl'],
+    'devops': ['deploy', 'ci', 'cd', 'docker', 'kubernetes', 'infra', 'monitoring', 'pipeline'],
+    'ux': ['ux', 'ui', 'design', 'usability', 'accessibility', 'wireframe'],
+    'payments': ['payment', 'stripe', 'billing', 'subscription', 'invoice', 'checkout'],
+    'legal': ['legal', 'compliance', 'gdpr', 'privacy', 'terms', 'contract', 'regulation'],
+    'performance': ['performance', 'speed', 'optimize', 'cache', 'latency', 'load time'],
+    'testing': ['test', 'testing', 'qa', 'unit test', 'integration test', 'e2e', 'coverage'],
+  };
+
+  function classifyLocal(text) {
+    const lower = text.toLowerCase();
+    const words = lower.split(/\s+/);
+
+    // ── Detect project FIRST (so type & lane use the right project) ──
+    let projectId = activeId;
+    if (projects.length > 1) {
+      let bestProjScore = 0; // only switch if there's a positive signal
+      for (const p of projects) {
+        if (p.id === activeId) continue; // skip current — it's the default
+        let score = 0;
+        const projWords = p.name.toLowerCase().split(/\s+/);
+        for (const pw of projWords) {
+          if (pw.length > 2 && lower.includes(pw)) score += 5;
+        }
+        for (const lane of p.lanes) {
+          const laneWords = lane.title.toLowerCase().split(/\s+/);
+          for (const lw of laneWords) {
+            if (lw.length > 3 && lower.includes(lw)) score += 2;
+          }
+          for (const item of lane.items.slice(0, 10)) {
+            const iw = item.title.toLowerCase().split(/\s+/);
+            for (const w of iw) {
+              if (w.length > 4 && lower.includes(w)) score += 1;
+            }
+          }
+        }
+        if (score > bestProjScore) { bestProjScore = score; projectId = p.id; }
+      }
+    }
+
+    // Use the detected project for type & lane classification
+    const proj = projects.find(p => p.id === projectId) || getProject();
+
+    // ── Detect priority ──
+    let priority = 'p2'; // default
+    let prioScore = { p1: 0, p2: 0, p3: 0 };
+    for (const [prio, keywords] of Object.entries(PRIORITY_SIGNALS)) {
+      for (const kw of keywords) {
+        if (lower.includes(kw)) prioScore[prio] += kw.length > 3 ? 2 : 1;
+      }
+    }
+    const maxPrio = Math.max(prioScore.p1, prioScore.p2, prioScore.p3);
+    if (maxPrio > 0) {
+      if (prioScore.p1 === maxPrio) priority = 'p1';
+      else if (prioScore.p3 === maxPrio && prioScore.p1 === 0) priority = 'p3';
+      else priority = 'p2';
+    }
+
+    // ── Detect type (using target project's types) ──
+    let type = null;
+    let typeScores = {};
+    const availTypes = proj ? (proj.types || ['eng', 'product', 'biz']) : ['eng', 'product', 'biz'];
+    for (const t of availTypes) {
+      typeScores[t] = 0;
+      const signals = TYPE_SIGNALS[t] || [];
+      for (const kw of signals) {
+        if (lower.includes(kw)) typeScores[t] += kw.length > 3 ? 2 : 1;
+      }
+    }
+    const maxType = Math.max(...Object.values(typeScores));
+    if (maxType > 0) {
+      type = Object.keys(typeScores).reduce((a, b) => typeScores[a] >= typeScores[b] ? a : b);
+    } else {
+      type = availTypes[0];
+    }
+
+    // ── Detect tags ──
+    const tags = [];
+    for (const [tag, keywords] of Object.entries(TAG_SIGNALS)) {
+      for (const kw of keywords) {
+        if (lower.includes(kw)) { tags.push(tag); break; }
+      }
+    }
+
+    // ── Detect lane (using target project's lanes) ──
+    let laneId = null;
+    if (proj) {
+      let bestLane = null;
+      let bestScore = -1;
+      for (const lane of proj.lanes) {
+        if (lane.id === 'done') continue;
+        let score = 0;
+        const laneWords = lane.title.toLowerCase().split(/\s+/);
+        for (const lw of laneWords) {
+          if (lw.length > 2 && lower.includes(lw)) score += 3;
+        }
+        // Also check existing items for topic similarity
+        for (const item of lane.items) {
+          const itemWords = item.title.toLowerCase().split(/\s+/);
+          for (const iw of itemWords) {
+            if (iw.length > 3 && lower.includes(iw)) score += 1;
+          }
+          if (item.tags) {
+            for (const t of item.tags) {
+              if (tags.includes(t)) score += 2;
+            }
+          }
+        }
+        if (score > bestScore) { bestScore = score; bestLane = lane.id; }
+      }
+      laneId = bestLane || proj.lanes.filter(l => l.id !== 'done')[0]?.id;
+    }
+
+    // ── Split title and description ──
+    let title = text;
+    let desc = '';
+    // If text has a sentence break, use first sentence as title
+    const sentenceBreak = text.match(/^(.+?)[.!?]\s+(.+)$/s);
+    if (sentenceBreak && sentenceBreak[1].length > 8) {
+      title = sentenceBreak[1].trim();
+      desc = sentenceBreak[2].trim();
+    } else if (text.length > 80) {
+      // If long, try to split at a natural break
+      const comma = text.indexOf(',', 30);
+      const dash = text.indexOf(' - ', 20);
+      const colon = text.indexOf(':', 10);
+      const breakPoint = Math.min(
+        comma > 0 ? comma : 999,
+        dash > 0 ? dash : 999,
+        colon > 0 ? colon : 999
+      );
+      if (breakPoint < 999) {
+        title = text.substring(0, breakPoint).trim();
+        desc = text.substring(breakPoint + 1).trim();
+        if (desc.startsWith('- ')) desc = desc.substring(2);
+      }
+    }
+
+    // Calculate confidence
+    const totalSignals = maxPrio + maxType + tags.length;
+    const confidence = Math.min(95, 40 + totalSignals * 8);
+
+    return {
+      title,
+      desc,
+      priority,
+      type,
+      tags: [...new Set(tags)].slice(0, 5),
+      laneId,
+      projectId,
+      confidence,
+      method: 'local'
+    };
+  }
+
+  // ── Claude API classification ──
+  async function classifyWithClaude(text) {
+    const apiKey = localStorage.getItem(API_KEY_STORE);
+    if (!apiKey) return null;
+
+    const proj = getProject();
+    const lanes = proj ? proj.lanes.filter(l => l.id !== 'done').map(l => ({ id: l.id, title: l.title })) : [];
+    const types = proj ? (proj.types || ['eng', 'product', 'biz']) : ['eng', 'product', 'biz'];
+    const projectList = projects.map(p => ({ id: p.id, name: p.name }));
+    const existingTags = getAllTags();
+
+    const prompt = `You are an AI assistant that classifies backlog items for a project management tool.
+
+Given this free-text input from the user, classify it into structured fields.
+
+Available projects: ${JSON.stringify(projectList)}
+Current project: "${proj ? proj.name : 'default'}"
+Available lanes in current project: ${JSON.stringify(lanes)}
+Available types: ${JSON.stringify(types)}
+Existing tags: ${JSON.stringify(existingTags.slice(0, 20))}
+
+User input: "${text}"
+
+Respond ONLY with a JSON object (no markdown, no explanation):
+{
+  "title": "concise title for the backlog item",
+  "desc": "expanded description with relevant details",
+  "priority": "p1 or p2 or p3",
+  "type": "one of the available types",
+  "tags": ["tag1", "tag2"],
+  "laneId": "id of the best matching lane",
+  "projectId": "id of the best matching project",
+  "confidence": 70-99
+}`;
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 300,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!resp.ok) {
+        console.warn('Claude API error:', resp.status);
+        return null;
+      }
+
+      const data = await resp.json();
+      const content = data.content[0].text.trim();
+      // Parse JSON from response (handle possible markdown wrapping)
+      const jsonStr = content.replace(/^```json?\s*/, '').replace(/\s*```$/, '');
+      const result = JSON.parse(jsonStr);
+      result.method = 'claude';
+
+      // Validate fields
+      if (!result.title) result.title = text;
+      if (!['p1', 'p2', 'p3'].includes(result.priority)) result.priority = 'p2';
+      if (!types.includes(result.type)) result.type = types[0];
+      if (!Array.isArray(result.tags)) result.tags = [];
+      if (!lanes.find(l => l.id === result.laneId)) result.laneId = lanes[0]?.id;
+      if (!projects.find(p => p.id === result.projectId)) result.projectId = activeId;
+
+      return result;
+    } catch (e) {
+      console.warn('Claude classification failed:', e);
+      return null;
+    }
+  }
+
+  async function classifyText(text) {
+    // Show thinking indicator
+    const suggestion = $('ai-suggestion');
+    suggestion.style.display = 'none';
+    const bar = $('quick-add-bar');
+    let thinking = bar.querySelector('.ai-thinking');
+    if (!thinking) {
+      thinking = document.createElement('div');
+      thinking.className = 'ai-thinking';
+      thinking.innerHTML = '<div class="ai-thinking-dots"><span></span><span></span><span></span></div> Classifying…';
+      bar.appendChild(thinking);
+    }
+    thinking.style.display = 'flex';
+
+    // Try Claude API first, fallback to local
+    let result = await classifyWithClaude(text);
+    if (!result) {
+      result = classifyLocal(text);
+    }
+
+    thinking.style.display = 'none';
+    return result;
+  }
+
+  // ── Render AI suggestion ──
+  function showSuggestion(result) {
+    pendingClassification = result;
+    const suggestion = $('ai-suggestion');
+    const chips = $('ai-chips');
+    const confidence = $('ai-confidence');
+
+    const proj = result.projectId ? projects.find(p => p.id === result.projectId) : getProject();
+    const lane = proj ? proj.lanes.find(l => l.id === result.laneId) : null;
+    const typeLabel = (proj && proj.typeLabels && proj.typeLabels[result.type]) || result.type;
+
+    const prioColors = { p1: 'tag-p1', p2: 'tag-p2', p3: 'tag-p3' };
+    const prioLabels = { p1: 'P1 — now', p2: 'P2 — next', p3: 'P3 — later' };
+
+    let html = '';
+
+    // Title & desc preview
+    if (result.title) {
+      html += `<div class="ai-title-preview">${esc(result.title)}</div>`;
+    }
+    if (result.desc) {
+      html += `<div class="ai-desc-preview">${esc(result.desc)}</div>`;
+    }
+
+    // Classification chips
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+
+    if (projects.length > 1) {
+      html += `<div class="ai-chip"><div class="ai-chip-label">Project</div><div class="ai-chip-value">${esc(proj ? proj.name : '?')}</div></div>`;
+    }
+
+    html += `<div class="ai-chip"><div class="ai-chip-label">Lane</div><div class="ai-chip-value">${esc(lane ? lane.title : '?')}</div></div>`;
+    html += `<div class="ai-chip"><div class="ai-chip-label">Priority</div><div class="ai-chip-value"><span class="tag ${prioColors[result.priority] || ''}">${prioLabels[result.priority] || result.priority}</span></div></div>`;
+    html += `<div class="ai-chip"><div class="ai-chip-label">Type</div><div class="ai-chip-value"><span class="tag tag-${result.type}">${esc(typeLabel)}</span></div></div>`;
+
+    if (result.tags && result.tags.length) {
+      html += `<div class="ai-chip"><div class="ai-chip-label">Tags</div><div class="ai-chip-value">${result.tags.map(t => `<span class="tag tag-custom">#${esc(t)}</span>`).join(' ')}</div></div>`;
+    }
+
+    html += '</div>';
+
+    chips.innerHTML = html;
+    confidence.textContent = result.method === 'claude' ? `Claude AI · ${result.confidence}%` : `Smart classify · ${result.confidence}%`;
+
+    suggestion.style.display = 'block';
+  }
+
+  function hideSuggestion() {
+    $('ai-suggestion').style.display = 'none';
+    pendingClassification = null;
+  }
+
+  function acceptSuggestion() {
+    if (!pendingClassification) return;
+    const r = pendingClassification;
+
+    // Switch project if needed
+    if (r.projectId && r.projectId !== activeId) {
+      activeId = r.projectId;
+    }
+
+    const p = getProject();
+    if (!p) return;
+
+    const newItem = {
+      id: uid(),
+      title: r.title,
+      desc: r.desc || '',
+      priority: r.priority,
+      type: r.type,
+      created: today(),
+      due: '',
+      tags: r.tags || [],
+      voiceNote: null,
+      voiceTranscript: ''
+    };
+
+    const lane = p.lanes.find(l => l.id === r.laneId);
+    if (lane) {
+      lane.items.push(newItem);
+    } else {
+      const firstLane = p.lanes.filter(l => l.id !== 'done')[0];
+      if (firstLane) firstLane.items.push(newItem);
+    }
+
+    save();
+    hideSuggestion();
+    $('quick-add-input').value = '';
+    render();
+    toast('Item added to ' + (lane ? lane.title : 'backlog'), 'success');
+  }
+
+  function editSuggestion() {
+    if (!pendingClassification) return;
+    const r = pendingClassification;
+
+    // Switch project if needed
+    if (r.projectId && r.projectId !== activeId) {
+      activeId = r.projectId;
+      save();
+      render();
+    }
+
+    // Open the full item modal pre-filled with the classification
+    const fakeItem = {
+      id: null,
+      title: r.title,
+      desc: r.desc || '',
+      priority: r.priority,
+      type: r.type,
+      due: '',
+      tags: r.tags || [],
+      voiceNote: null,
+      _preFillLane: r.laneId
+    };
+
+    hideSuggestion();
+    $('quick-add-input').value = '';
+    openItemModal(fakeItem, r.laneId);
+  }
+
+  // ── Quick add event handlers ──
+  function setupQuickAdd() {
+    const input = $('quick-add-input');
+    let debounceTimer = null;
+
+    input.addEventListener('keydown', async e => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        e.preventDefault();
+        clearTimeout(debounceTimer);
+        const text = input.value.trim();
+        const result = await classifyText(text);
+        showSuggestion(result);
+      }
+      if (e.key === 'Escape') {
+        hideSuggestion();
+        input.blur();
+      }
+    });
+
+    // Accept / Edit / Dismiss buttons
+    $('ai-accept').addEventListener('click', acceptSuggestion);
+    $('ai-edit').addEventListener('click', editSuggestion);
+    $('ai-dismiss').addEventListener('click', () => { hideSuggestion(); $('quick-add-input').value = ''; });
+
+    // Voice input for quick add
+    $('quick-add-voice-btn').addEventListener('click', () => {
+      startQuickVoiceForInput(input);
+    });
+
+    // AI settings
+    $('quick-add-settings-btn').addEventListener('click', openAISettings);
+  }
+
+  // Voice input that fills the quick-add input
+  async function startQuickVoiceForInput(input) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { toast('Speech recognition not supported in this browser', 'error'); return; }
+
+    const btn = $('quick-add-voice-btn');
+    if (btn.classList.contains('recording')) {
+      // Stop
+      if (speechRecognition) { speechRecognition.stop(); speechRecognition = null; }
+      btn.classList.remove('recording');
+      return;
+    }
+
+    btn.classList.add('recording');
+    speechRecognition = new SpeechRecognition();
+    speechRecognition.continuous = false;
+    speechRecognition.interimResults = true;
+    speechRecognition.lang = 'en-US';
+
+    speechRecognition.onresult = e => {
+      let transcript = '';
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      input.value = transcript;
+    };
+
+    speechRecognition.onend = async () => {
+      btn.classList.remove('recording');
+      speechRecognition = null;
+      if (input.value.trim()) {
+        const result = await classifyText(input.value.trim());
+        showSuggestion(result);
+      }
+    };
+
+    speechRecognition.onerror = () => {
+      btn.classList.remove('recording');
+      speechRecognition = null;
+      toast('Speech recognition failed', 'error');
+    };
+
+    try {
+      speechRecognition.start();
+    } catch (err) {
+      btn.classList.remove('recording');
+      toast('Microphone not available', 'error');
+    }
+  }
+
+  // ── AI Settings modal ──
+  function openAISettings() {
+    const overlay = $('ai-settings-overlay');
+    const modal = $('ai-settings-modal');
+    const currentKey = localStorage.getItem(API_KEY_STORE) || '';
+
+    modal.innerHTML = `
+      <h3>AI Classification Settings</h3>
+      <div class="field">
+        <label>Claude API Key (optional)</label>
+        <input type="password" id="ai-api-key" value="${currentKey}" placeholder="sk-ant-api..." />
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+        Without an API key, the app uses smart keyword matching to classify items (works offline, instant).
+        With a Claude API key, items are classified using Claude Haiku for much better accuracy — it understands context, infers intent, and writes better descriptions.
+      </p>
+      <div class="field">
+        <label>Classification mode</label>
+        <div class="tag-select">
+          <button class="tag-option${!currentKey ? ' sel' : ''}" data-val="local">Smart local (free, instant)</button>
+          <button class="tag-option${currentKey ? ' sel' : ''}" data-val="claude">Claude AI (better accuracy)</button>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="toolbar-btn" id="ai-settings-cancel">Cancel</button>
+        <button class="toolbar-btn primary" id="ai-settings-save">Save</button>
+      </div>`;
+
+    overlay.classList.add('open');
+
+    modal.querySelectorAll('.tag-select .tag-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.tag-option').forEach(b => b.classList.remove('sel'));
+        btn.classList.add('sel');
+      });
+    });
+
+    $('ai-settings-cancel').addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+    $('ai-settings-save').addEventListener('click', () => {
+      const key = $('ai-api-key').value.trim();
+      if (key) {
+        localStorage.setItem(API_KEY_STORE, key);
+        toast('Claude API key saved', 'success');
+      } else {
+        localStorage.removeItem(API_KEY_STORE);
+        toast('Using local classification', 'info');
+      }
+      overlay.classList.remove('open');
+    });
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  INBOX SYNC (Teams → Backlog pipeline)
+  // ═════════════════════════════════════════════════════
+
+  const INBOX_INTERVAL = 60000; // check every 60s
+  const INBOX_BASE_KEY = 'backlog_inbox_url';
+
+  function getInboxUrl() {
+    // Auto-detect: if served from a server, use same origin; otherwise use stored URL
+    if (location.protocol === 'https:' || location.protocol === 'http:') {
+      return location.origin + '/api/backlog/inbox';
+    }
+    return localStorage.getItem(INBOX_BASE_KEY) || '';
+  }
+
+  async function syncInbox() {
+    const url = getInboxUrl();
+    if (!url) return;
+
+    try {
+      const resp = await fetch(url + '?ack=true', {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+      if (!data.items || data.items.length === 0) return;
+
+      let added = 0;
+      const routed = { /* projectId → count */ };
+
+      for (const item of data.items) {
+        if (!(item.title || '').trim()) continue;
+
+        // ── Run AI classifier to determine project, lane, priority, type, tags ──
+        const classText = item.title + (item.description ? '. ' + item.description : '');
+        const c = classifyLocal(classText); // use local (instant) for bulk sync
+
+        // ── Build meeting tag ──
+        const meetingTag = item.meeting_subject
+          ? item.meeting_subject.replace(/[^\w\s-]/g, '').trim().substring(0, 40)
+          : null;
+
+        // ── Merge tags: classifier tags + webhook tags + meeting tag ──
+        const allTags = [...new Set([
+          ...(c.tags || []),
+          ...(item.tags || []),
+          ...(meetingTag ? [meetingTag] : []),
+          ...(item.source ? [item.source] : []),
+        ])].slice(0, 8);
+
+        // ── Resolve target project (classifier may route to a different project) ──
+        const targetProjectId = c.projectId || activeId;
+        const targetProject = projects.find(p => p.id === targetProjectId) || getProject();
+        if (!targetProject) continue;
+
+        // ── Resolve target lane within that project ──
+        // Re-run lane matching against the target project if classifier picked a different one
+        let targetLaneId = c.laneId;
+        if (c.projectId && c.projectId !== activeId) {
+          // Classifier picked a different project — find best lane in THAT project
+          let bestScore = -1;
+          const lower = classText.toLowerCase();
+          for (const lane of targetProject.lanes) {
+            if (lane.id === 'done') continue;
+            let score = 0;
+            for (const lw of lane.title.toLowerCase().split(/\s+/)) {
+              if (lw.length > 2 && lower.includes(lw)) score += 3;
+            }
+            for (const li of lane.items.slice(0, 10)) {
+              for (const iw of li.title.toLowerCase().split(/\s+/)) {
+                if (iw.length > 4 && lower.includes(iw)) score += 1;
+              }
+            }
+            if (score > bestScore) { bestScore = score; targetLaneId = lane.id; }
+          }
+        }
+
+        const targetLane = targetProject.lanes.find(l => l.id === targetLaneId)
+          || targetProject.lanes.find(l => l.id !== 'done')
+          || targetProject.lanes[0];
+        if (!targetLane) continue;
+
+        // ── Use classifier's priority, but let webhook override if explicitly set ──
+        const priority = (item.priority && ['p1', 'p2', 'p3'].includes(item.priority))
+          ? item.priority
+          : c.priority;
+
+        // ── Build description with meeting context ──
+        let desc = c.desc || item.description || '';
+        if (item.meeting_subject) {
+          desc = (desc ? desc + '\n\n' : '') + '📋 From meeting: ' + item.meeting_subject;
+        }
+
+        // ── Create the item ──
+        const newItem = {
+          id: item.id || ('inbox-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+          title: c.title || item.title,
+          desc,
+          priority,
+          type: c.type || (targetProject.types ? targetProject.types[0] : 'eng'),
+          date: new Date().toISOString().slice(0, 10),
+          due: '',
+          tags: allTags,
+          voice: null,
+        };
+
+        targetLane.items.unshift(newItem);
+        added++;
+        routed[targetProject.name] = (routed[targetProject.name] || 0) + 1;
+      }
+
+      if (added > 0) {
+        save();
+        render();
+
+        // Build informative toast
+        const routeInfo = Object.entries(routed)
+          .map(([name, count]) => `${count} → ${name}`)
+          .join(', ');
+        toast(`📥 ${added} item${added > 1 ? 's' : ''} synced: ${routeInfo}`, 'success');
+      }
+    } catch (e) {
+      // Silently fail — inbox sync is best-effort
+      console.debug('Inbox sync failed:', e.message);
+    }
+  }
+
+  function startInboxSync() {
+    // Initial sync after a short delay (let the app render first)
+    setTimeout(syncInbox, 2000);
+    // Periodic sync
+    setInterval(syncInbox, INBOX_INTERVAL);
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  INIT
+  // ═════════════════════════════════════════════════════
+
+  load();
+  render();
+  setupQuickAdd();
+  setupTouchDragDrop();
+  setupMobileSearch();
+  startInboxSync();
+
+  // Add Q shortcut for quick add
+  document.addEventListener('keydown', e => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+    if (document.querySelector('.modal-overlay.open')) return;
+    if (e.key === 'q') { e.preventDefault(); $('quick-add-input').focus(); }
+  });
+
+})();
+
+</script>
+</body>
+</html>
