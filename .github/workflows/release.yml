@@ -34,8 +34,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/sebdenes/backlogapp:${{ steps.version.outputs.version }}
+            ghcr.io/sebdenes/backlogapp:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -103,10 +103,10 @@ jobs:
             # Auto-rollback on failure
             if [ "$HEALTHY" = "false" ]; then
               echo "Health check failed after 5 attempts"
-              if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "ghcr.io/${{ github.repository }}:latest" ]; then
+              if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "ghcr.io/sebdenes/backlogapp:latest" ]; then
                 echo "Rolling back to $PREVIOUS..."
                 docker pull "$PREVIOUS"
-                docker tag "$PREVIOUS" ghcr.io/${{ github.repository }}:latest
+                docker tag "$PREVIOUS" ghcr.io/sebdenes/backlogapp:latest
                 $COMPOSE up -d --force-recreate
                 sleep 10
                 if curl -sf http://localhost:${PORT:-8000}/api/health >/dev/null 2>&1; then
