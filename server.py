@@ -27,7 +27,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -192,6 +192,97 @@ async def classify_text(request: Request):
         raise HTTPException(status_code=504, detail="Classification timed out")
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="Failed to parse classification result")
+
+
+@app.post("/api/transcribe")
+async def transcribe_audio(request: Request, file: UploadFile = File(...)):
+    """Transcribe an audio file using Claude Code CLI."""
+    _require_auth(request)
+    if not shutil.which("claude"):
+        raise HTTPException(status_code=503, detail="Claude CLI not available")
+
+    # Save uploaded file
+    suffix = Path(file.filename or "audio.ogg").suffix or ".ogg"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "claude", "-p",
+            "Transcribe this audio file. Return ONLY the transcribed text, nothing else.",
+            "--file", tmp_path, "--output-format", "json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+
+        if proc.returncode != 0:
+            log.error("Transcribe failed: %s", stderr.decode()[:500])
+            raise HTTPException(status_code=502, detail="Transcription failed")
+
+        raw = json.loads(stdout.decode())
+        result = raw.get("result", raw) if isinstance(raw, dict) else raw
+        text = str(result).strip()
+        # Strip markdown fences
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        return {"text": text.strip()}
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Transcription timed out")
+    finally:
+        os.unlink(tmp_path)
+
+
+@app.post("/api/describe-image")
+async def describe_image(request: Request, file: UploadFile = File(...)):
+    """Describe an image using Claude Code CLI. Returns classification JSON."""
+    _require_auth(request)
+    if not shutil.which("claude"):
+        raise HTTPException(status_code=503, detail="Claude CLI not available")
+
+    suffix = Path(file.filename or "image.jpg").suffix or ".jpg"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    try:
+        prompt = (
+            "Describe this image for a task/note capture. Return ONLY valid JSON with keys: "
+            "title (concise, max 80 chars), description (what you see and any action items), "
+            "tags (1-3 relevant tags)."
+        )
+        proc = await asyncio.create_subprocess_exec(
+            "claude", "-p", prompt, "--file", tmp_path, "--output-format", "json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
+
+        if proc.returncode != 0:
+            log.error("Describe image failed: %s", stderr.decode()[:500])
+            raise HTTPException(status_code=502, detail="Image description failed")
+
+        raw = json.loads(stdout.decode())
+        result = raw.get("result", raw) if isinstance(raw, dict) else raw
+        if isinstance(result, str):
+            t = result.strip()
+            if t.startswith("```"):
+                t = t.split("\n", 1)[1] if "\n" in t else t[3:]
+            if t.endswith("```"):
+                t = t[:-3]
+            return json.loads(t.strip())
+        return result
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Image description timed out")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="Failed to parse image description")
+    finally:
+        os.unlink(tmp_path)
 
 
 # ── Backlog CRUD ──────────────────────────────────────────────────────────────

@@ -73,10 +73,43 @@ async def _classify_with_cortex(text: str) -> dict:
 
 
 async def _transcribe_voice(file_path: str) -> str:
-    """Voice transcription — currently returns placeholder.
-    TODO: Add server-side transcription endpoint.
-    """
-    return "[Voice message received — transcription coming soon]"
+    """Transcribe a voice message via Cortex API."""
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        try:
+            with open(file_path, "rb") as f:
+                resp = await client.post(
+                    f"{CORTEX_API}/api/transcribe",
+                    files={"file": (os.path.basename(file_path), f, "audio/ogg")},
+                    headers=_auth_headers(),
+                )
+            if resp.status_code == 200:
+                text = resp.json().get("text", "")
+                log.info("Transcribed: %s", text[:100])
+                return text
+            log.error("Transcribe API error: %d %s", resp.status_code, resp.text[:200])
+        except Exception as e:
+            log.error("Transcribe API failed: %s", e)
+    return "[Voice message — transcription failed]"
+
+
+async def _describe_photo(file_path: str) -> dict:
+    """Describe a photo via Cortex API. Returns classification dict."""
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            with open(file_path, "rb") as f:
+                resp = await client.post(
+                    f"{CORTEX_API}/api/describe-image",
+                    files={"file": (os.path.basename(file_path), f, "image/jpeg")},
+                    headers=_auth_headers(),
+                )
+            if resp.status_code == 200:
+                result = resp.json()
+                log.info("Described photo: %s", json.dumps(result, ensure_ascii=False)[:200])
+                return result
+            log.error("Describe API error: %d %s", resp.status_code, resp.text[:200])
+        except Exception as e:
+            log.error("Describe API failed: %s", e)
+    return {}
 
 
 async def _post_to_cortex(item: dict) -> bool:
@@ -233,14 +266,18 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         tmp_path = tmp.name
 
     try:
-        text = caption or "Photo capture"
-        classified = await _classify_with_cortex(text)
+        described = await _describe_photo(tmp_path)
+
+        # If description failed, fall back to classify caption
+        if not described:
+            text = caption or "Photo capture"
+            described = await _classify_with_cortex(text)
 
         item = {
-            "title": classified.get("title", text[:120]),
-            "description": classified.get("description", text),
-            "priority": classified.get("priority", "p3"),
-            "tags": classified.get("tags", []) + ["telegram", "photo"],
+            "title": described.get("title", caption or "Photo capture")[:120],
+            "description": described.get("description", caption or ""),
+            "priority": described.get("priority", "p3"),
+            "tags": described.get("tags", []) + ["telegram", "photo"],
             "source": "telegram-photo",
         }
 
