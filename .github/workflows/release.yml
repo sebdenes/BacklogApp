@@ -39,6 +39,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push bot image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bot
+          push: true
+          tags: |
+            ghcr.io/sebdenes/backlogapp-bot:${{ steps.version.outputs.version }}
+            ghcr.io/sebdenes/backlogapp-bot:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -86,6 +97,7 @@ jobs:
 
             # Pull + deploy
             $COMPOSE pull backlog
+            $COMPOSE pull cortex-bot 2>/dev/null || true
             $COMPOSE up -d --force-recreate
 
             # Health check (5 attempts, 5s apart)

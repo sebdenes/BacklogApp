@@ -14,5 +14,18 @@ services:
       - APP_VERSION=${APP_VERSION:-latest}
     restart: unless-stopped
 
+  cortex-bot:
+    image: ghcr.io/sebdenes/backlogapp-bot:latest
+    container_name: cortex-bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
+      - CORTEX_API_URL=http://backlog:8000
+      - BACKLOG_API_KEY=${BACKLOG_API_KEY:-}
+      - BACKLOG_WEBHOOK_SECRET=${BACKLOG_WEBHOOK_SECRET:-}
+    depends_on:
+      - backlog
+    restart: unless-stopped
+
 volumes:
   backlog-data:
