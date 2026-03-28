@@ -1517,6 +1517,15 @@ body {
     }
   }
 
+  // Periodically pull from backend to pick up API-side changes (moves, inbox items)
+  function _startBackendPoll() {
+    setInterval(async () => {
+      if (!_backendAvailable) return;
+      const changed = await _loadFromBackend();
+      if (changed) render();
+    }, 15000); // every 15s
+  }
+
   function _showSyncStatus(state) {
     const el = $('sync-status');
     if (!el) return;
@@ -1548,20 +1557,16 @@ body {
       const data = await resp.json();
       if (Array.isArray(data) && data.length > 0) {
         _backendAvailable = true;
-        // Count total items in backend vs local
-        const backendItems = data.reduce((s, p) => s + (p.lanes || []).reduce((s2, l) => s2 + (l.items || []).length, 0), 0);
-        const localItems = projects.reduce((s, p) => s + (p.lanes || []).reduce((s2, l) => s2 + (l.items || []).length, 0), 0);
-        // Use backend if it has more data, or if local is just the seed
-        if (backendItems > localItems || !localStorage.getItem(STORAGE_KEY) || projects.length <= 1 && localItems <= 2) {
-          projects = data;
-          activeId = projects[0]?.id;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-          localStorage.setItem(ACTIVE_KEY, activeId);
-          return true;
-        }
+        // Server is always the source of truth
+        projects = data;
+        activeId = localStorage.getItem(ACTIVE_KEY) || projects[0]?.id;
+        if (!projects.find(p => p.id === activeId)) activeId = projects[0]?.id;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+        localStorage.setItem(ACTIVE_KEY, activeId);
+        return true;
       }
     } catch (e) {
-      console.debug('Backend load skipped:', e.message);
+      console.debug('Backend load failed, using localStorage:', e.message);
     }
     return false;
   }
@@ -1582,7 +1587,7 @@ body {
       ];
     }
 
-    // Load projects
+    // Load from localStorage first (instant), then backend overrides
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -1598,7 +1603,7 @@ body {
       activeId = projects[0].id;
     }
 
-    // Try loading from backend (non-blocking)
+    // Backend always wins — load and re-render
     _loadFromBackend().then(loaded => {
       if (loaded) render();
     });
@@ -4254,6 +4259,7 @@ Respond ONLY with a JSON object (no markdown, no explanation):
   setupMobileSearch();
   setupViewSwitcher();
   startInboxSync();
+  _startBackendPoll();
 
   // Keyboard shortcuts
   document.addEventListener('keydown', e => {
