@@ -458,7 +458,7 @@ body {
   padding: 12px 14px;
   transition: all var(--transition);
   position: relative;
-  cursor: grab;
+  cursor: pointer;
 }
 .card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); background: var(--card-bg-hover); }
 .card.dragging { opacity: 0.4; transform: scale(0.98); }
@@ -1973,6 +1973,15 @@ body {
         if (action === 'edit-lane') openLaneModal(laneId);
         if (action === 'add-to-lane') openItemModal(null, laneId);
         if (action === 'delete-lane') deleteLane(laneId);
+      });
+    });
+
+    // Click card to open
+    container.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('.card-btn') || e.target.closest('.card-voice-badge') || e.target.closest('.card-meeting-badge')) return;
+        const item = findItem(card.dataset.id);
+        if (item) openItemModal(item);
       });
     });
 
