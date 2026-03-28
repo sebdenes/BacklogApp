@@ -42,6 +42,8 @@ MEETINGS_FILE = DATA_DIR / "meetings.json"
 
 API_KEY: str | None = os.environ.get("BACKLOG_API_KEY")
 WEBHOOK_SECRET: str | None = os.environ.get("BACKLOG_WEBHOOK_SECRET")
+GITHUB_TOKEN: str | None = os.environ.get("GITHUB_TOKEN")
+GITHUB_WEBHOOK_SECRET: str = os.environ.get("GITHUB_WEBHOOK_SECRET", secrets.token_hex(20))
 
 ALLOWED_ORIGINS = os.environ.get(
     "CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
@@ -661,6 +663,185 @@ async def meetings_inbox(request: Request):
     _save_meetings(meetings)
     log.info("Meetings inbox: received '%s'", meeting["title"])
     return JSONResponse({"ok": True, "meeting_id": meeting["id"]})
+
+
+# ── GitHub Integration ────────────────────────────────────────────────────────
+
+import hashlib
+import hmac
+
+
+def _verify_github_signature(payload: bytes, signature: str) -> bool:
+    """Verify GitHub webhook signature."""
+    if not signature.startswith("sha256="):
+        return False
+    expected = hmac.new(
+        GITHUB_WEBHOOK_SECRET.encode(), payload, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(f"sha256={expected}", signature)
+
+
+def _find_and_move_item(projects: list, query: str, lane_id: str, priority: str | None = None) -> str | None:
+    """Find an item by title substring and move it to the given lane."""
+    q = query.lower().strip()
+    for p in projects:
+        for lane in p.get("lanes", []):
+            for item in lane.get("items", []):
+                if q in (item.get("title") or "").lower():
+                    # Found it — move
+                    if priority:
+                        item["priority"] = priority
+                    if lane["id"] != lane_id:
+                        dest = next((l for l in p["lanes"] if l["id"] == lane_id), None)
+                        if dest:
+                            lane["items"] = [i for i in lane["items"] if i["id"] != item["id"]]
+                            dest["items"].append(item)
+                    return item["title"]
+    return None
+
+
+@app.post("/api/github/webhook")
+async def github_webhook(request: Request):
+    """Receive GitHub push events and move Cortex cards based on commit messages."""
+    payload = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256", "")
+
+    if not _verify_github_signature(payload, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    event = request.headers.get("X-GitHub-Event", "")
+    if event == "ping":
+        return {"status": "pong"}
+
+    if event != "push":
+        return {"status": "ignored", "event": event}
+
+    body = json.loads(payload)
+    commits = body.get("commits", [])
+
+    if not BACKLOG_FILE.exists():
+        return {"status": "no backlog data"}
+
+    projects = json.loads(BACKLOG_FILE.read_text())
+    if isinstance(projects, dict):
+        projects = projects.get("projects", [])
+
+    moved = []
+    for commit in commits:
+        msg = commit.get("message", "")
+
+        # "fixes/closes <query>" → done
+        import re
+        for pattern in [r"(?:fixes|closes|fixed|closed|completes|completed)\s+(.{3,80})", ]:
+            match = re.search(pattern, msg, re.IGNORECASE)
+            if match:
+                q = match.group(1).strip()
+                title = _find_and_move_item(projects, q, "done", "done")
+                if title:
+                    moved.append({"title": title, "lane": "done", "commit": commit.get("id", "")[:7]})
+
+        # "starts/wip <query>" → in-progress
+        for pattern in [r"(?:starts|working|wip|in.progress)\s+(.{3,80})", ]:
+            match = re.search(pattern, msg, re.IGNORECASE)
+            if match:
+                q = match.group(1).strip()
+                title = _find_and_move_item(projects, q, "in-progress")
+                if title:
+                    moved.append({"title": title, "lane": "in-progress", "commit": commit.get("id", "")[:7]})
+
+    if moved:
+        _atomic_write(BACKLOG_FILE, json.dumps(projects, indent=2))
+        log.info("GitHub webhook moved %d items: %s", len(moved), moved)
+
+    return {"status": "ok", "moved": moved}
+
+
+@app.post("/api/projects/{project_id}/link-github")
+async def link_github_repo(project_id: str, request: Request):
+    """Link a GitHub repo to a project. Creates a webhook on the repo."""
+    _require_auth(request)
+    body = await request.json()
+    repo = (body.get("repo") or "").strip()  # e.g. "sebdenes/BacklogApp"
+
+    if not repo or "/" not in repo:
+        raise HTTPException(status_code=400, detail="Invalid repo format. Use owner/repo")
+
+    if not GITHUB_TOKEN:
+        raise HTTPException(status_code=503, detail="GITHUB_TOKEN not configured on server")
+
+    # Determine webhook URL
+    public_url = body.get("publicUrl") or request.headers.get("origin") or ""
+    if not public_url:
+        raise HTTPException(status_code=400, detail="Could not determine public URL")
+    webhook_url = public_url.rstrip("/") + "/api/github/webhook"
+
+    # Check if webhook already exists
+    import urllib.request
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    try:
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/hooks",
+            headers=headers,
+        )
+        resp = urllib.request.urlopen(req)
+        existing = json.loads(resp.read())
+        for hook in existing:
+            if hook.get("config", {}).get("url") == webhook_url:
+                # Already linked
+                _update_project_github(project_id, repo)
+                return {"status": "ok", "message": "Already linked", "repo": repo}
+    except Exception as e:
+        log.error("Failed to list hooks: %s", e)
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {e}")
+
+    # Create webhook
+    try:
+        hook_data = json.dumps({
+            "name": "web",
+            "active": True,
+            "events": ["push"],
+            "config": {
+                "url": webhook_url,
+                "content_type": "json",
+                "secret": GITHUB_WEBHOOK_SECRET,
+                "insecure_ssl": "0",
+            },
+        }).encode()
+
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/hooks",
+            data=hook_data,
+            headers={**headers, "Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = urllib.request.urlopen(req)
+        hook = json.loads(resp.read())
+        log.info("Created GitHub webhook for %s: hook_id=%s", repo, hook.get("id"))
+    except Exception as e:
+        log.error("Failed to create hook: %s", e)
+        raise HTTPException(status_code=502, detail=f"Failed to create webhook: {e}")
+
+    # Update project with repo info
+    _update_project_github(project_id, repo)
+    return {"status": "ok", "message": "Webhook created", "repo": repo, "hook_id": hook.get("id")}
+
+
+def _update_project_github(project_id: str, repo: str) -> None:
+    """Save the GitHub repo link on the project."""
+    if not BACKLOG_FILE.exists():
+        return
+    projects = json.loads(BACKLOG_FILE.read_text())
+    if isinstance(projects, dict):
+        projects = projects.get("projects", [])
+    for p in projects:
+        if p.get("id") == project_id:
+            p["githubRepo"] = repo
+            break
+    _atomic_write(BACKLOG_FILE, json.dumps(projects, indent=2))
 
 
 # ── Static files (must be last) ──────────────────────────────────────────────

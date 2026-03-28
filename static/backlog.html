@@ -2693,6 +2693,13 @@ body {
       <div class="field"><label>Item types (comma-separated)</label>
         <input id="pm-types" value="${existing ? (existing.types || []).join(', ') : 'eng, product, biz'}" placeholder="e.g. eng, product, biz, design" />
       </div>
+      <div class="field"><label>GitHub Repository</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="pm-github" value="${existing && existing.githubRepo ? esc(existing.githubRepo) : ''}" placeholder="owner/repo (e.g. sebdenes/BacklogApp)" style="flex:1;padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text);font-size:13px;font-family:var(--font-mono);" />
+          ${existing && existing.githubRepo ? '<span style="color:var(--green);font-size:11px;">linked</span>' : ''}
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:4px;">Commits with "fixes X" or "starts X" will auto-move matching cards</div>
+      </div>
       <div class="modal-actions">
         ${existing ? `<button class="toolbar-btn" id="pm-delete" style="margin-right:auto;color:var(--red)">Delete project</button>` : ''}
         <button class="toolbar-btn" id="pm-cancel">Cancel</button>
@@ -2713,12 +2720,14 @@ body {
       types.forEach(t => { typeLabels[t] = t.charAt(0).toUpperCase() + t.slice(1); });
 
       const wsId = $('pm-workspace').value || '';
+      const githubRepo = ($('pm-github').value || '').trim();
 
       if (existing) {
         existing.name = name;
         existing.types = types;
         existing.typeLabels = typeLabels;
         existing.workspaceId = wsId;
+        existing.githubRepo = githubRepo;
       } else {
         const newProj = {
           id: uid(),
@@ -2726,6 +2735,7 @@ body {
           types,
           typeLabels,
           workspaceId: wsId,
+          githubRepo: githubRepo,
           lanes: [
             { id: uid(), title: 'To do', collapsed: false, items: [] },
             { id: uid(), title: 'In progress', collapsed: false, items: [] },
@@ -2735,6 +2745,13 @@ body {
         projects.push(newProj);
         activeId = newProj.id;
       }
+
+      // Link GitHub webhook if repo was set or changed
+      const projId = existing ? existing.id : activeId;
+      if (githubRepo && (!existing || existing.githubRepo !== githubRepo)) {
+        _linkGithubRepo(projId, githubRepo);
+      }
+
       save();
       overlay.classList.remove('open');
       render();
@@ -3694,6 +3711,29 @@ Respond ONLY with a JSON object (no markdown, no explanation):
         body: JSON.stringify({ meetings }),
       });
     } catch (e) { /* silent */ }
+  }
+
+  // ── GitHub linking ──
+
+  async function _linkGithubRepo(projectId, repo) {
+    const base = _getApiBase();
+    if (!base) return;
+    try {
+      const resp = await fetch(base + `/api/projects/${projectId}/link-github`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo, publicUrl: location.origin }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        toast(`GitHub linked: ${repo} — ${data.message}`, 'success');
+      } else {
+        const err = await resp.json().catch(() => ({}));
+        toast(`GitHub link failed: ${err.detail || 'Unknown error'}`, 'error');
+      }
+    } catch (e) {
+      toast('GitHub link failed: ' + e.message, 'error');
+    }
   }
 
   // ── View switching ──
