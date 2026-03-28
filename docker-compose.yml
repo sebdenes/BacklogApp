@@ -12,6 +12,8 @@ services:
       - BACKLOG_WEBHOOK_SECRET=${BACKLOG_WEBHOOK_SECRET:-}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
       - APP_VERSION=${APP_VERSION:-dev}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
     restart: unless-stopped
 
   cortex-bot:

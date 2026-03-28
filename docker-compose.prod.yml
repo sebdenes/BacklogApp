@@ -10,8 +10,10 @@ services:
       - DATA_DIR=/data
       - BACKLOG_API_KEY=${BACKLOG_API_KEY:-}
       - BACKLOG_WEBHOOK_SECRET=${BACKLOG_WEBHOOK_SECRET:-}
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://backlog.athlai.me}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://cortex.athlai.me}
       - APP_VERSION=${APP_VERSION:-latest}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:-}
     restart: unless-stopped
 
   cortex-bot:
