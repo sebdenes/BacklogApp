@@ -196,12 +196,15 @@ async def classify_text(request: Request):
         raise HTTPException(status_code=502, detail="Failed to parse classification result")
 
 
+OPENAI_API_KEY: str | None = os.environ.get("OPENAI_API_KEY")
+
+
 @app.post("/api/transcribe")
 async def transcribe_audio(request: Request, file: UploadFile = File(...)):
-    """Transcribe an audio file using Claude Code CLI."""
+    """Transcribe an audio file using OpenAI Whisper API."""
     _require_auth(request)
-    if not shutil.which("claude"):
-        raise HTTPException(status_code=503, detail="Claude CLI not available")
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY not configured")
 
     # Save uploaded file
     suffix = Path(file.filename or "audio.ogg").suffix or ".ogg"
@@ -210,31 +213,44 @@ async def transcribe_audio(request: Request, file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "claude", "-p",
-            "Transcribe this audio file. Return ONLY the transcribed text, nothing else.",
-            "--file", tmp_path, "--output-format", "json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+        import urllib.request
+        import urllib.error
+
+        # Prepare multipart form data for Whisper API
+        boundary = secrets.token_hex(16)
+        audio_data = open(tmp_path, "rb").read()
+        body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="audio{suffix}"\r\n'
+            f"Content-Type: audio/ogg\r\n\r\n"
+        ).encode() + audio_data + (
+            f"\r\n--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="model"\r\n\r\n'
+            f"whisper-1"
+            f"\r\n--{boundary}--\r\n"
+        ).encode()
+
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/audio/transcriptions",
+            data=body,
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120.0)
 
-        if proc.returncode != 0:
-            log.error("Transcribe failed: %s", stderr.decode()[:500])
-            raise HTTPException(status_code=502, detail="Transcription failed")
+        resp = urllib.request.urlopen(req, timeout=60)
+        result = json.loads(resp.read())
+        text = result.get("text", "").strip()
+        log.info("Whisper transcribed: %s", text[:100])
+        return {"text": text}
 
-        raw = json.loads(stdout.decode())
-        result = raw.get("result", raw) if isinstance(raw, dict) else raw
-        text = str(result).strip()
-        # Strip markdown fences
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
-        return {"text": text.strip()}
-
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="Transcription timed out")
+    except urllib.error.HTTPError as e:
+        log.error("Whisper API error: %d %s", e.code, e.read().decode()[:300])
+        raise HTTPException(status_code=502, detail="Transcription failed")
+    except Exception as e:
+        log.error("Transcription error: %s", e)
+        raise HTTPException(status_code=502, detail=str(e))
     finally:
         os.unlink(tmp_path)
 

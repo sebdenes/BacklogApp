@@ -218,7 +218,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         transcript = await _transcribe_voice(tmp_path)
         await msg.edit_text(f"Transcribed: {transcript[:200]}...\n\nClassifying...")
 
-        classified = await _classify_with_claude(transcript)
+        classified = await _classify_with_cortex(transcript)
 
         item = {
             "title": classified.get("title", transcript[:120]),
