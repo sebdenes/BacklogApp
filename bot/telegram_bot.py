@@ -72,26 +72,6 @@ async def _classify_with_cortex(text: str) -> dict:
     return {"title": text[:120], "description": text, "priority": "", "tags": []}
 
 
-async def _transcribe_voice(file_path: str) -> str:
-    """Transcribe a voice message via Cortex API."""
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        try:
-            with open(file_path, "rb") as f:
-                resp = await client.post(
-                    f"{CORTEX_API}/api/transcribe",
-                    files={"file": (os.path.basename(file_path), f, "audio/ogg")},
-                    headers=_auth_headers(),
-                )
-            if resp.status_code == 200:
-                text = resp.json().get("text", "")
-                log.info("Transcribed: %s", text[:100])
-                return text
-            log.error("Transcribe API error: %d %s", resp.status_code, resp.text[:200])
-        except Exception as e:
-            log.error("Transcribe API failed: %s", e)
-    return "[Voice message — transcription failed]"
-
-
 async def _describe_photo(file_path: str) -> dict:
     """Describe a photo via Cortex API. Returns classification dict."""
     async with httpx.AsyncClient(timeout=60.0) as client:
@@ -170,16 +150,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if not text:
         return
 
+    # Check if this is a voice summary reply
+    is_voice = bool(context.user_data.get("pending_voice"))
+    if is_voice:
+        del context.user_data["pending_voice"]
+
     msg = await update.message.reply_text("Classifying...")
 
     classified = await _classify_with_cortex(text)
 
+    extra_tags = ["telegram", "voice"] if is_voice else ["telegram"]
     item = {
         "title": classified.get("title", text[:120]),
         "description": classified.get("description", text),
         "priority": classified.get("priority", ""),
-        "tags": classified.get("tags", []) + ["telegram"],
-        "source": "telegram",
+        "tags": classified.get("tags", []) + extra_tags,
+        "source": "telegram-voice" if is_voice else "telegram",
     }
 
     ok = await _post_to_cortex(item)
@@ -201,49 +187,12 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not _check_user(update):
         return
 
-    msg = await update.message.reply_text("Transcribing voice...")
-
-    voice = update.message.voice or update.message.audio
-    if not voice:
-        await msg.edit_text("Could not read voice message.")
-        return
-
-    # Download voice file
-    file = await context.bot.get_file(voice.file_id)
-    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
-        await file.download_to_drive(tmp.name)
-        tmp_path = tmp.name
-
-    try:
-        transcript = await _transcribe_voice(tmp_path)
-        await msg.edit_text(f"Transcribed: {transcript[:200]}...\n\nClassifying...")
-
-        classified = await _classify_with_cortex(transcript)
-
-        item = {
-            "title": classified.get("title", transcript[:120]),
-            "description": classified.get("description", transcript),
-            "priority": classified.get("priority", ""),
-            "tags": classified.get("tags", []) + ["telegram", "voice"],
-            "source": "telegram-voice",
-        }
-
-        ok = await _post_to_cortex(item)
-
-        priority_emoji = {"p1": "🔴", "p2": "🟡", "p3": "🟢"}.get(item["priority"], "⚪")
-        tags_str = " ".join(f"#{t}" for t in item["tags"])
-
-        if ok:
-            await msg.edit_text(
-                f"Added to Cortex\n\n"
-                f"{priority_emoji} {item['title']}\n"
-                f"{tags_str}\n\n"
-                f"Transcript: {transcript[:300]}"
-            )
-        else:
-            await msg.edit_text("Failed to add to Cortex.")
-    finally:
-        os.unlink(tmp_path)
+    # Store the voice message ID so we can link the reply
+    context.user_data["pending_voice"] = update.message.message_id
+    await update.message.reply_text(
+        "Voice received. Reply with a quick text summary and I'll add it to Cortex.",
+        reply_to_message_id=update.message.message_id,
+    )
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
