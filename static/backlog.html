@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0a0e1a" />
-  <title>Backlog</title>
+  <title>Cortex</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,10 +23,10 @@
   --border: #1e293b;
   --border-hover: #334155;
   --border-focus: #E8440A;
-  --accent: #E8440A;
-  --accent-hover: #d63d09;
-  --accent-muted: rgba(232, 68, 10, 0.10);
-  --accent-border: rgba(232, 68, 10, 0.35);
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-muted: rgba(139, 92, 246, 0.10);
+  --accent-border: rgba(139, 92, 246, 0.35);
   --blue: #3b82f6;
   --purple: #8b5cf6;
   --green: #22c55e;
@@ -86,12 +86,15 @@ body {
 .logo {
   font-size: 18px;
   font-weight: 700;
-  background: linear-gradient(135deg, #E8440A, #f59e0b);
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .version { color: var(--dim); font-size: 11px; font-family: var(--font-mono); }
+.sync-status { font-size: 10px; color: var(--dim); font-family: var(--font-mono); transition: opacity 0.3s; }
+.sync-status.saving { color: var(--yellow); }
+.sync-status.saved { color: var(--green); }
 
 .topbar-center { flex: 1; max-width: 420px; }
 
@@ -140,6 +143,45 @@ body {
 .icon-btn.active { background: var(--accent-muted); border-color: var(--accent-border); color: var(--accent); }
 
 /* ── Project bar ── */
+/* ── Workspace selector ── */
+.workspace-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  gap: 6px;
+}
+.workspace-tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.workspace-tabs::-webkit-scrollbar { display: none; }
+.workspace-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.workspace-tab:hover { color: var(--text-secondary); background: rgba(255,255,255,0.03); }
+.workspace-tab.active { color: var(--accent); background: var(--accent-muted); border-color: var(--accent-border); }
+.workspace-tab .ws-count { font-size: 10px; opacity: 0.6; }
+.workspace-add-btn {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--border); border-radius: 50%;
+  color: var(--muted); cursor: pointer; font-size: 14px; flex-shrink: 0;
+  transition: all var(--transition);
+}
+.workspace-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 .project-bar {
   display: flex;
   align-items: center;
@@ -1162,6 +1204,102 @@ body {
   .tag-option { padding: 8px 14px; }
 }
 
+/* ── View switcher ── */
+.view-switcher { display: flex; border: 1px solid var(--border); border-radius: var(--radius-xs); overflow: hidden; margin-right: 4px; }
+.view-btn { width: 36px; height: 34px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--muted); cursor: pointer; transition: all var(--transition); }
+.view-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.view-btn.active { background: var(--accent-muted); color: var(--accent); }
+
+/* ── Meetings view ── */
+.meetings-view { display: none; padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+.meetings-view.active { display: block; }
+
+.meetings-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.meetings-toolbar .search-box { flex: 1; min-width: 180px; max-width: 320px; }
+
+.meetings-stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.meetings-stat { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-xs); font-size: 13px; color: var(--text-secondary); }
+.meetings-stat strong { color: var(--text); font-weight: 600; }
+
+.meetings-empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+.meetings-empty svg { margin-bottom: 16px; opacity: 0.4; }
+.meetings-empty h3 { color: var(--text-secondary); margin-bottom: 8px; font-size: 16px; }
+.meetings-empty p { font-size: 13px; }
+
+.meetings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+
+.meeting-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; cursor: pointer; transition: all var(--transition); }
+.meeting-card:hover { background: var(--card-bg-hover); border-color: var(--border-hover); transform: translateY(-1px); }
+.meeting-card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 8px; }
+.meeting-card-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.meeting-card-date { font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; flex-shrink: 0; }
+.meeting-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.meeting-card-summary { font-size: 12px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meeting-status { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.meeting-status.pending { background: rgba(234,179,8,0.15); color: var(--yellow); }
+.meeting-status.processing { background: rgba(59,130,246,0.15); color: var(--blue); }
+.meeting-status.processed { background: rgba(34,197,94,0.15); color: var(--green); }
+.meeting-status.failed { background: rgba(239,68,68,0.15); color: var(--red); }
+
+/* ── Meeting modal ── */
+.meeting-modal { max-width: 700px; width: 95vw; max-height: 90vh; overflow-y: auto; }
+.meeting-modal .field { margin-bottom: 14px; }
+.meeting-modal label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.meeting-modal input[type="text"],
+.meeting-modal input[type="date"] { width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); font-size: 13px; font-family: var(--font); outline: none; transition: border-color var(--transition); }
+.meeting-modal input:focus { border-color: var(--border-focus); }
+.meeting-modal textarea { width: 100%; padding: 10px 12px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); font-size: 12px; font-family: var(--font-mono); outline: none; resize: vertical; line-height: 1.6; transition: border-color var(--transition); }
+.meeting-modal textarea:focus { border-color: var(--border-focus); }
+
+.meeting-attendees { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-xs); min-height: 38px; align-items: center; }
+.meeting-attendees .attendee-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--accent-muted); border: 1px solid var(--accent-border); border-radius: 12px; font-size: 12px; color: var(--accent); }
+.meeting-attendees .attendee-chip .remove { cursor: pointer; opacity: 0.6; font-size: 14px; }
+.meeting-attendees .attendee-chip .remove:hover { opacity: 1; }
+.meeting-attendees input { flex: 1; min-width: 80px; background: transparent; border: none; color: var(--text); font-size: 12px; font-family: var(--font); outline: none; }
+
+.meeting-modal-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 16px; }
+
+/* ── Upload drop zone ── */
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 24px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all var(--transition); margin-bottom: 12px; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-muted); color: var(--text); }
+.upload-zone svg { margin-bottom: 8px; opacity: 0.5; }
+
+/* ── Extraction panel ── */
+.extraction-panel { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
+.extraction-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.extraction-header h3 { font-size: 14px; font-weight: 600; }
+.extraction-section { margin-bottom: 14px; }
+.extraction-section h4 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.extraction-section ul { list-style: none; padding: 0; }
+.extraction-section li { font-size: 13px; color: var(--text-secondary); padding: 4px 0; line-height: 1.5; }
+.extraction-section li::before { content: "•"; color: var(--accent); margin-right: 8px; }
+.extraction-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); margin-bottom: 6px; transition: all var(--transition); }
+.extraction-item:hover { border-color: var(--border-hover); }
+.extraction-item input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+.extraction-item-body { flex: 1; min-width: 0; }
+.extraction-item-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.extraction-item-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.extraction-item-meta { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+
+.extraction-spinner { display: flex; align-items: center; gap: 10px; padding: 20px; color: var(--muted); font-size: 13px; justify-content: center; }
+.extraction-spinner .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: dotPulse 1.2s ease infinite; }
+.extraction-spinner .dot:nth-child(2) { animation-delay: 0.2s; }
+.extraction-spinner .dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse { 0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1.2); } }
+
+/* ── Card meeting badge ── */
+.card-meeting-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--purple); cursor: pointer; padding: 1px 6px; background: rgba(139,92,246,0.1); border-radius: 8px; }
+.card-meeting-badge:hover { background: rgba(139,92,246,0.2); text-decoration: underline; }
+
+/* ── Meetings responsive ── */
+@media (max-width: 600px) {
+  .meetings-view { padding: 12px; }
+  .meetings-grid { grid-template-columns: 1fr; }
+  .meetings-toolbar { flex-direction: column; align-items: stretch; }
+  .meetings-toolbar .search-box { max-width: none; }
+  .meeting-modal { padding: 14px; }
+}
+
 </style>
 </head>
 <body>
@@ -1169,8 +1307,9 @@ body {
   <!-- ── Top bar ── -->
   <header class="topbar">
     <div class="topbar-left">
-      <h1 class="logo">Backlog</h1>
-      <span class="version">v2.0</span>
+      <h1 class="logo">Cortex</h1>
+      <span class="version">v3.0</span>
+      <span class="sync-status" id="sync-status"></span>
     </div>
     <div class="topbar-center">
       <div class="search-box">
@@ -1179,6 +1318,14 @@ body {
       </div>
     </div>
     <div class="topbar-right">
+      <div class="view-switcher" id="view-switcher">
+        <button class="view-btn active" data-view="board" title="Board (B)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <button class="view-btn" data-view="meetings" title="Meetings (M)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </button>
+      </div>
       <button class="icon-btn" id="btn-timeline" title="Timeline view">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       </button>
@@ -1187,6 +1334,12 @@ body {
       </button>
     </div>
   </header>
+
+  <!-- ── Workspace selector ── -->
+  <nav class="workspace-bar" id="workspace-bar">
+    <div class="workspace-tabs" id="workspace-tabs"></div>
+    <button class="workspace-add-btn" id="btn-add-workspace" title="New workspace">+</button>
+  </nav>
 
   <!-- ── Project selector ── -->
   <nav class="project-bar">
@@ -1243,6 +1396,23 @@ body {
     <div class="lanes" id="lanes-container"></div>
   </main>
 
+  <!-- ── Meetings view ── -->
+  <section class="meetings-view" id="meetings-view">
+    <div id="meetings-toolbar-container"></div>
+    <div id="meetings-stats-container"></div>
+    <div id="meetings-list-container"></div>
+  </section>
+
+  <!-- ── New meeting modal ── -->
+  <div class="modal-overlay" id="new-meeting-overlay">
+    <div class="modal meeting-modal" id="new-meeting-modal"></div>
+  </div>
+
+  <!-- ── Meeting detail modal ── -->
+  <div class="modal-overlay" id="meeting-detail-overlay">
+    <div class="modal meeting-modal" id="meeting-detail-modal"></div>
+  </div>
+
   <!-- ── Item modal ── -->
   <div class="modal-overlay" id="item-modal-overlay">
     <div class="modal" id="item-modal"></div>
@@ -1275,7 +1445,7 @@ body {
 
   <script>
 /* ═══════════════════════════════════════════════════════════
-   Backlog — standalone multi-project kanban board
+   Cortex — personal AI operating system
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -1284,8 +1454,12 @@ body {
   const STORAGE_KEY = 'backlog_projects';
   const ACTIVE_KEY  = 'backlog_active_project';
   const API_KEY_STORE = 'backlog_claude_api_key';
+  const WORKSPACES_KEY = 'cortex_workspaces';
+  const ACTIVE_WS_KEY = 'cortex_active_workspace';
 
   // ── State ──
+  let workspaces   = []; // { id, name, emoji }
+  let activeWsId   = 'all'; // 'all' or workspace id
   let projects     = [];
   let activeId     = null;
   let filters      = new Set();
@@ -1330,22 +1504,37 @@ body {
       });
       if (resp.ok) {
         _backendAvailable = true;
+        _showSyncStatus('saved');
       } else {
         _backendAvailable = false;
+        _showSyncStatus('error');
         console.debug('Backend sync disabled (status ' + resp.status + ')');
       }
     } catch (e) {
       _backendAvailable = false;
+      _showSyncStatus('error');
       console.debug('Backend sync disabled:', e.message);
     }
+  }
+
+  function _showSyncStatus(state) {
+    const el = $('sync-status');
+    if (!el) return;
+    if (state === 'saving') { el.textContent = 'syncing…'; el.className = 'sync-status saving'; }
+    else if (state === 'saved') { el.textContent = '✓ saved'; el.className = 'sync-status saved'; setTimeout(() => { el.textContent = ''; }, 2000); }
+    else if (state === 'error') { el.textContent = '✕ offline'; el.className = 'sync-status'; }
+    else { el.textContent = ''; el.className = 'sync-status'; }
   }
 
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
       localStorage.setItem(ACTIVE_KEY, activeId);
+      localStorage.setItem(WORKSPACES_KEY, JSON.stringify(workspaces));
+      localStorage.setItem(ACTIVE_WS_KEY, activeWsId);
     } catch (e) { console.warn('Save failed', e); }
     // Debounced backend sync (2s after last save)
+    _showSyncStatus('saving');
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(_syncToBackend, 2000);
   }
@@ -1376,6 +1565,22 @@ body {
   }
 
   function load() {
+    // Load workspaces
+    try {
+      const wsRaw = localStorage.getItem(WORKSPACES_KEY);
+      if (wsRaw) workspaces = JSON.parse(wsRaw) || [];
+      activeWsId = localStorage.getItem(ACTIVE_WS_KEY) || 'all';
+    } catch (e) { workspaces = []; }
+
+    // Seed default workspaces if empty
+    if (!workspaces.length) {
+      workspaces = [
+        { id: 'ws_personal', name: 'Personal', emoji: '🏠' },
+        { id: 'ws_work', name: 'Work', emoji: '💼' },
+      ];
+    }
+
+    // Load projects
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -1420,7 +1625,7 @@ body {
         {
           id: 'backlog', title: 'Backlog', collapsed: false,
           items: [
-            { id: uid(), title: 'Welcome to BacklogApp!', desc: 'Use Quick Add above to type or voice-dictate items. AI will auto-classify priority, type, and lane.', priority: 'p2', type: 'product', created: today, due: '', tags: ['getting-started'], voiceNote: null },
+            { id: uid(), title: 'Welcome to Cortex!', desc: 'Use Quick Add above to type or voice-dictate items. AI will auto-classify priority, type, and lane.', priority: 'p2', type: 'product', created: today, due: '', tags: ['getting-started'], voiceNote: null },
           ]
         },
         {
@@ -1537,7 +1742,76 @@ body {
   //  RENDER
   // ═════════════════════════════════════════════════════
 
+  // ── Workspaces ──
+
+  function getVisibleProjects() {
+    if (activeWsId === 'all') return projects;
+    if (activeWsId === 'uncategorized') return projects.filter(p => !p.workspaceId || !workspaces.some(w => w.id === p.workspaceId));
+    return projects.filter(p => p.workspaceId === activeWsId);
+  }
+
+  function renderWorkspaceTabs() {
+    const container = $('workspace-tabs');
+    const allCount = projects.length;
+    let html = `<button class="workspace-tab${activeWsId === 'all' ? ' active' : ''}" data-ws="all">
+      All <span class="ws-count">${allCount}</span>
+    </button>`;
+    workspaces.forEach(ws => {
+      const count = projects.filter(p => p.workspaceId === ws.id).length;
+      html += `<button class="workspace-tab${activeWsId === ws.id ? ' active' : ''}" data-ws="${ws.id}">
+        ${ws.emoji || ''} ${esc(ws.name)} <span class="ws-count">${count}</span>
+      </button>`;
+    });
+    // Unassigned
+    const unassigned = projects.filter(p => !p.workspaceId || !workspaces.some(w => w.id === p.workspaceId)).length;
+    if (unassigned && workspaces.length) {
+      html += `<button class="workspace-tab${activeWsId === 'uncategorized' ? ' active' : ''}" data-ws="uncategorized">
+        Uncategorized <span class="ws-count">${unassigned}</span>
+      </button>`;
+    }
+    container.innerHTML = html;
+
+    container.querySelectorAll('.workspace-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        activeWsId = tab.dataset.ws;
+        // If active project is not in this workspace, switch to first visible
+        const visible = getVisibleProjects();
+        if (visible.length && !visible.find(p => p.id === activeId)) {
+          activeId = visible[0].id;
+        }
+        save();
+        render();
+      });
+      tab.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (tab.dataset.ws === 'all' || tab.dataset.ws === 'uncategorized') return;
+        const ws = workspaces.find(w => w.id === tab.dataset.ws);
+        if (ws) openWorkspaceModal(ws);
+      });
+    });
+
+    $('btn-add-workspace').onclick = () => openWorkspaceModal(null);
+  }
+
+  function openWorkspaceModal(ws) {
+    const isEdit = !!ws;
+    const name = prompt(isEdit ? `Rename workspace "${ws.name}":` : 'New workspace name:', isEdit ? ws.name : '');
+    if (!name || !name.trim()) return;
+    const emoji = prompt('Emoji (optional):', isEdit ? (ws.emoji || '') : '📁') || '';
+
+    if (isEdit) {
+      ws.name = name.trim();
+      ws.emoji = emoji.trim();
+    } else {
+      workspaces.push({ id: 'ws_' + Date.now().toString(36), name: name.trim(), emoji: emoji.trim() });
+    }
+    save();
+    render();
+    toast(isEdit ? 'Workspace updated' : 'Workspace created', 'success');
+  }
+
   function render() {
+    renderWorkspaceTabs();
     renderProjectTabs();
     renderStats();
     renderToolbar();
@@ -1547,7 +1821,8 @@ body {
   // ── Project tabs ──
   function renderProjectTabs() {
     const container = $('project-tabs');
-    container.innerHTML = projects.map(p => {
+    const visible = getVisibleProjects();
+    container.innerHTML = visible.map(p => {
       const count = p.lanes.reduce((s, l) => s + l.items.filter(i => i.priority !== 'done').length, 0);
       const isActive = p.id === activeId;
       return `<button class="project-tab${isActive ? ' active' : ''}" data-id="${p.id}">
@@ -1723,6 +1998,14 @@ body {
       });
     });
 
+    // Bind meeting badges
+    container.querySelectorAll('.card-meeting-badge').forEach(badge => {
+      badge.addEventListener('click', e => {
+        e.stopPropagation();
+        navigateToMeeting(badge.dataset.meetingId);
+      });
+    });
+
     // ── Drag & drop (cross-lane) ──
     setupDragDrop();
   }
@@ -1746,6 +2029,7 @@ body {
         ${tags.map(t => `<span class="tag tag-custom">#${esc(t)}</span>`).join('')}
         ${item.due ? `<span class="card-due ${dueStatus}">&#128197; ${formatDate(item.due)}</span>` : ''}
         ${item.voiceNote ? `<span class="card-voice-badge" data-id="${item.id}">&#127908; Voice</span>` : ''}
+        ${item.meetingId ? `<span class="card-meeting-badge" data-meeting-id="${item.meetingId}">&#128203; ${esc(item.meetingTitle || 'Meeting')}</span>` : ''}
       </div>
     </div>`;
   }
@@ -2066,6 +2350,13 @@ body {
         ${modalAudioBlob ? '<audio class="voice-audio" id="m-voice-audio" controls></audio>' : ''}
         ${modalTranscript ? `<div class="voice-transcription" id="m-voice-transcript">${esc(modalTranscript)}</div>` : ''}
       </div>
+      ${item && item.meetingId ? `
+      <div class="field">
+        <label>Source meeting</label>
+        <div id="m-meeting-link" style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-xs);font-size:13px;color:var(--purple);cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          &#128203; ${esc(item.meetingTitle || 'View meeting')}
+        </div>
+      </div>` : ''}
       <div class="modal-actions">
         <button class="toolbar-btn" id="m-cancel">Cancel</button>
         <button class="toolbar-btn primary" id="m-save">Save</button>
@@ -2096,6 +2387,15 @@ body {
 
     // Voice recording in modal
     $('m-voice-btn').addEventListener('click', toggleModalVoice);
+
+    // Meeting link
+    const meetingLink = $('m-meeting-link');
+    if (meetingLink && item && item.meetingId) {
+      meetingLink.addEventListener('click', () => {
+        closeItemModal();
+        navigateToMeeting(item.meetingId);
+      });
+    }
 
     // Actions
     $('m-cancel').addEventListener('click', closeItemModal);
@@ -2362,9 +2662,18 @@ body {
     const modal = $('project-modal');
     const existing = editId ? projects.find(p => p.id === editId) : null;
 
+    const wsOpts = workspaces.map(ws => {
+      const sel = existing ? existing.workspaceId === ws.id : (activeWsId !== 'all' && activeWsId !== 'uncategorized' && activeWsId === ws.id);
+      return `<option value="${ws.id}"${sel ? ' selected' : ''}>${ws.emoji || ''} ${esc(ws.name)}</option>`;
+    }).join('');
+
     modal.innerHTML =
       `<h3>${existing ? 'Edit project' : 'New project'}</h3>
       <div class="field"><label>Name</label><input id="pm-name" value="${existing ? esc(existing.name) : ''}" placeholder="Project name" /></div>
+      <div class="field"><label>Workspace</label><select id="pm-workspace" style="width:100%;padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text);font-size:13px;font-family:var(--font);">
+        <option value="">None</option>
+        ${wsOpts}
+      </select></div>
       <div class="field"><label>Item types (comma-separated)</label>
         <input id="pm-types" value="${existing ? (existing.types || []).join(', ') : 'eng, product, biz'}" placeholder="e.g. eng, product, biz, design" />
       </div>
@@ -2387,16 +2696,20 @@ body {
       const typeLabels = {};
       types.forEach(t => { typeLabels[t] = t.charAt(0).toUpperCase() + t.slice(1); });
 
+      const wsId = $('pm-workspace').value || '';
+
       if (existing) {
         existing.name = name;
         existing.types = types;
         existing.typeLabels = typeLabels;
+        existing.workspaceId = wsId;
       } else {
         const newProj = {
           id: uid(),
           name,
           types,
           typeLabels,
+          workspaceId: wsId,
           lanes: [
             { id: uid(), title: 'To do', collapsed: false, items: [] },
             { id: uid(), title: 'In progress', collapsed: false, items: [] },
@@ -2490,7 +2803,7 @@ body {
     const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `backlog_${p.name.toLowerCase().replace(/\s+/g, '_')}_${today()}.json`;
+    a.download = `cortex_${p.name.toLowerCase().replace(/\s+/g, '_')}_${today()}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
     toast('Exported ' + p.name);
@@ -3180,7 +3493,7 @@ Respond ONLY with a JSON object (no markdown, no explanation):
   }
 
   // ═════════════════════════════════════════════════════
-  //  INBOX SYNC (Teams → Backlog pipeline)
+  //  INBOX SYNC (Teams → Cortex pipeline)
   // ═════════════════════════════════════════════════════
 
   const INBOX_INTERVAL = 60000; // check every 60s
@@ -3315,21 +3628,628 @@ Respond ONLY with a JSON object (no markdown, no explanation):
   }
 
   // ═════════════════════════════════════════════════════
+  //  MEETINGS
+  // ═════════════════════════════════════════════════════
+
+  const MEETINGS_STORAGE_KEY = 'backlog_meetings';
+  let meetings = [];
+  let currentView = 'board'; // 'board' | 'meetings'
+  let _meetingSyncTimer = null;
+  let meetingSearch = '';
+
+  function loadMeetings() {
+    try {
+      const raw = localStorage.getItem(MEETINGS_STORAGE_KEY);
+      if (raw) meetings = JSON.parse(raw) || [];
+    } catch (e) { meetings = []; }
+    _loadMeetingsFromBackend();
+  }
+
+  async function _loadMeetingsFromBackend() {
+    const base = _getApiBase();
+    if (!base || _backendAvailable === false) return;
+    try {
+      const resp = await fetch(base + '/api/meetings');
+      if (resp.ok) {
+        const data = await resp.json();
+        const backend = data.meetings || [];
+        if (backend.length && !meetings.length) {
+          meetings = backend;
+          localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(meetings));
+          if (currentView === 'meetings') renderMeetingsView();
+        }
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  function saveMeetings() {
+    try { localStorage.setItem(MEETINGS_STORAGE_KEY, JSON.stringify(meetings)); } catch (e) { /* full */ }
+    clearTimeout(_meetingSyncTimer);
+    _meetingSyncTimer = setTimeout(_syncMeetingsToBackend, 2000);
+  }
+
+  async function _syncMeetingsToBackend() {
+    const base = _getApiBase();
+    if (!base || _backendAvailable === false) return;
+    try {
+      await fetch(base + '/api/meetings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetings }),
+      });
+    } catch (e) { /* silent */ }
+  }
+
+  // ── View switching ──
+
+  function switchView(view) {
+    currentView = view;
+    const boardEls = [document.querySelector('.workspace-bar'), document.querySelector('.project-bar'), $('quick-add-bar'), document.querySelector('.main')];
+    const meetingsEl = $('meetings-view');
+
+    boardEls.forEach(el => { if (el) el.style.display = view === 'board' ? '' : 'none'; });
+    meetingsEl.classList.toggle('active', view === 'meetings');
+
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
+
+    if (view === 'meetings') renderMeetingsView();
+  }
+
+  function setupViewSwitcher() {
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+  }
+
+  // ── Meetings list rendering ──
+
+  function renderMeetingsView() {
+    const toolbar = $('meetings-toolbar-container');
+    const stats = $('meetings-stats-container');
+    const list = $('meetings-list-container');
+
+    const totalItems = meetings.reduce((s, m) => s + (m.actionItemIds || []).length, 0);
+    const thisWeek = meetings.filter(m => {
+      const d = new Date(m.created || m.date);
+      const now = new Date();
+      return (now - d) < 7 * 24 * 60 * 60 * 1000;
+    }).length;
+
+    toolbar.innerHTML = `
+      <div class="meetings-toolbar">
+        <button class="toolbar-btn primary" id="btn-new-meeting">+ New Meeting</button>
+        <div class="search-box">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="meeting-search" placeholder="Search meetings…" value="${esc(meetingSearch)}" autocomplete="off" style="width:100%;padding:7px 10px 7px 32px;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text);font-size:13px;font-family:var(--font);outline:none;" />
+        </div>
+      </div>`;
+
+    stats.innerHTML = `
+      <div class="meetings-stats">
+        <div class="meetings-stat"><strong>${meetings.length}</strong> meetings</div>
+        <div class="meetings-stat"><strong>${totalItems}</strong> action items extracted</div>
+        <div class="meetings-stat"><strong>${thisWeek}</strong> this week</div>
+      </div>`;
+
+    // Filter by search
+    let filtered = meetings;
+    if (meetingSearch) {
+      const q = meetingSearch.toLowerCase();
+      filtered = meetings.filter(m =>
+        (m.title || '').toLowerCase().includes(q) ||
+        (m.transcript || '').toLowerCase().includes(q) ||
+        (m.attendees || []).some(a => a.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort by date descending
+    filtered = [...filtered].sort((a, b) => new Date(b.date || b.created) - new Date(a.date || a.created));
+
+    if (!filtered.length) {
+      list.innerHTML = `
+        <div class="meetings-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3>${meetingSearch ? 'No meetings match your search' : 'No meetings yet'}</h3>
+          <p>${meetingSearch ? 'Try a different search term' : 'Paste a transcript from Teams, Zoom, or Otter to get started'}</p>
+        </div>`;
+    } else {
+      list.innerHTML = `<div class="meetings-grid">${filtered.map(m => renderMeetingCard(m)).join('')}</div>`;
+    }
+
+    // Wire events
+    $('btn-new-meeting').addEventListener('click', openNewMeetingModal);
+    const searchInput = $('meeting-search');
+    searchInput.addEventListener('input', e => { meetingSearch = e.target.value; renderMeetingsView(); });
+    list.querySelectorAll('.meeting-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const mtg = meetings.find(m => m.id === card.dataset.id);
+        if (mtg) openMeetingDetailModal(mtg);
+      });
+    });
+  }
+
+  function renderMeetingCard(m) {
+    const date = m.date ? new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const attendeeCount = (m.attendees || []).length;
+    const itemCount = (m.actionItemIds || []).length;
+    const summaryText = Array.isArray(m.summary) && m.summary.length ? m.summary[0] : '';
+    return `
+      <div class="meeting-card" data-id="${m.id}">
+        <div class="meeting-card-head">
+          <div class="meeting-card-title">${esc(m.title || 'Untitled')}</div>
+          <div class="meeting-card-date">${esc(date)}</div>
+        </div>
+        <div class="meeting-card-meta">
+          ${attendeeCount ? `<span class="tag tag-custom">${attendeeCount} attendee${attendeeCount !== 1 ? 's' : ''}</span>` : ''}
+          ${itemCount ? `<span class="tag tag-custom" style="background:rgba(139,92,246,0.12);color:var(--purple)">${itemCount} action item${itemCount !== 1 ? 's' : ''}</span>` : ''}
+          <span class="meeting-status ${m.status || 'pending'}">${esc(m.status || 'pending')}</span>
+        </div>
+        ${summaryText ? `<div class="meeting-card-summary">${esc(summaryText)}</div>` : ''}
+      </div>`;
+  }
+
+  // ── New meeting modal ──
+
+  function openNewMeetingModal() {
+    const modal = $('new-meeting-modal');
+    modal.innerHTML = `
+      <h2 style="font-size:16px;margin-bottom:16px;">New Meeting</h2>
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="nm-title" placeholder="e.g. Sprint Planning, 1:1 with Alice" />
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="nm-date" value="${today()}" />
+      </div>
+      <div class="field">
+        <label>Attendees</label>
+        <div class="meeting-attendees" id="nm-attendees-container">
+          <input type="text" id="nm-attendees-input" placeholder="Type name + Enter" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Transcript</label>
+        <div class="upload-zone" id="nm-upload-zone">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div>Drop a .txt, .md, .vtt, or .srt file here — or click to upload</div>
+        </div>
+        <textarea id="nm-transcript" rows="10" placeholder="Or paste your meeting transcript here…"></textarea>
+      </div>
+      <div class="meeting-modal-actions">
+        <button class="toolbar-btn" id="nm-cancel">Cancel</button>
+        <button class="toolbar-btn primary" id="nm-save">Create Meeting</button>
+      </div>`;
+
+    $('new-meeting-overlay').classList.add('open');
+    setTimeout(() => $('nm-title').focus(), 80);
+
+    // Attendees chip input
+    const attendees = [];
+    setupAttendeesInput('nm-attendees-input', 'nm-attendees-container', attendees);
+
+    // File upload
+    setupUploadZone('nm-upload-zone', 'nm-transcript');
+
+    // Hidden file input for click-to-upload
+    setupUploadClick('nm-upload-zone', 'nm-transcript');
+
+    $('nm-cancel').addEventListener('click', () => $('new-meeting-overlay').classList.remove('open'));
+    $('new-meeting-overlay').addEventListener('click', e => { if (e.target === $('new-meeting-overlay')) $('new-meeting-overlay').classList.remove('open'); });
+
+    $('nm-save').addEventListener('click', () => {
+      const title = $('nm-title').value.trim();
+      const transcript = $('nm-transcript').value.trim();
+      if (!title && !transcript) { toast('Please add a title or transcript', 'error'); return; }
+
+      const meeting = {
+        id: 'mtg-' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6),
+        title: title || 'Untitled Meeting',
+        date: $('nm-date').value ? new Date($('nm-date').value).toISOString() : new Date().toISOString(),
+        attendees: [...attendees],
+        status: 'pending',
+        transcript: transcript,
+        transcriptSource: 'paste',
+        summary: [],
+        decisions: [],
+        openQuestions: [],
+        actionItemIds: [],
+        extractionRaw: {},
+        tags: [],
+        created: new Date().toISOString(),
+      };
+
+      meetings.push(meeting);
+      saveMeetings();
+      $('new-meeting-overlay').classList.remove('open');
+      renderMeetingsView();
+      toast('Meeting created — open it to extract action items');
+    });
+  }
+
+  // ── Meeting detail modal ──
+
+  function openMeetingDetailModal(meeting) {
+    const modal = $('meeting-detail-modal');
+    const isProcessed = meeting.status === 'processed';
+    const hasTranscript = (meeting.transcript || '').trim().length > 0;
+    const attendeeList = (meeting.attendees || []).map(a => `<span class="attendee-chip">${esc(a)}</span>`).join('');
+
+    let extractionHtml = '';
+    if (isProcessed && meeting.extractionRaw) {
+      extractionHtml = renderExtractionResults(meeting);
+    }
+
+    modal.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <h2 style="font-size:16px;flex:1;">${esc(meeting.title || 'Untitled')}</h2>
+        <span class="meeting-status ${meeting.status || 'pending'}" style="flex-shrink:0;">${esc(meeting.status || 'pending')}</span>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <div style="font-size:13px;color:var(--text-secondary);">${meeting.date ? new Date(meeting.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Not set'}</div>
+      </div>
+      ${(meeting.attendees || []).length ? `
+      <div class="field">
+        <label>Attendees</label>
+        <div class="meeting-attendees" style="pointer-events:none;">${attendeeList}</div>
+      </div>` : ''}
+      <div class="field">
+        <label>Transcript ${hasTranscript ? `<span style="color:var(--dim);font-weight:400;text-transform:none;">(${meeting.transcript.split(/\s+/).length} words)</span>` : ''}</label>
+        <textarea id="md-transcript" rows="8" ${isProcessed ? '' : ''}>${esc(meeting.transcript || '')}</textarea>
+      </div>
+      ${hasTranscript && meeting.status !== 'processing' ? `
+      <div style="text-align:center;padding:8px 0;">
+        <button class="toolbar-btn primary" id="md-extract" style="padding:10px 24px;font-size:14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          ${isProcessed ? 'Re-extract Action Items' : meeting.status === 'failed' ? 'Retry Extraction' : 'Extract Action Items'}
+        </button>
+      </div>` : ''}
+      <div id="md-extraction-panel">${extractionHtml}</div>
+      <div id="md-extraction-spinner" style="display:none;">
+        <div class="extraction-spinner">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <span>Extracting with Claude Code…</span>
+        </div>
+      </div>
+      <div class="meeting-modal-actions">
+        <button class="toolbar-btn" id="md-delete" style="color:var(--red);margin-right:auto;">Delete</button>
+        <button class="toolbar-btn" id="md-close">Close</button>
+      </div>`;
+
+    $('meeting-detail-overlay').classList.add('open');
+
+    // Wire extract button
+    const extractBtn = $('md-extract');
+    if (extractBtn) {
+      extractBtn.addEventListener('click', () => runExtraction(meeting));
+    }
+
+    // Wire delete
+    $('md-delete').addEventListener('click', () => {
+      if (!confirm('Delete this meeting?')) return;
+      meetings = meetings.filter(m => m.id !== meeting.id);
+      saveMeetings();
+      $('meeting-detail-overlay').classList.remove('open');
+      renderMeetingsView();
+      toast('Meeting deleted');
+    });
+
+    // Wire close
+    $('md-close').addEventListener('click', () => {
+      // Save transcript edits
+      const newTranscript = $('md-transcript').value.trim();
+      if (newTranscript !== (meeting.transcript || '').trim()) {
+        meeting.transcript = newTranscript;
+        saveMeetings();
+      }
+      $('meeting-detail-overlay').classList.remove('open');
+    });
+
+    $('meeting-detail-overlay').addEventListener('click', e => {
+      if (e.target === $('meeting-detail-overlay')) {
+        $('md-close').click();
+      }
+    });
+  }
+
+  // ── Extraction ──
+
+  async function runExtraction(meeting) {
+    const spinner = $('md-extraction-spinner');
+    const panel = $('md-extraction-panel');
+    const extractBtn = $('md-extract');
+
+    // Update transcript from textarea in case user edited it
+    meeting.transcript = ($('md-transcript') || {}).value || meeting.transcript;
+
+    if (extractBtn) extractBtn.style.display = 'none';
+    spinner.style.display = '';
+    panel.innerHTML = '';
+
+    try {
+      const base = _getApiBase();
+      // Save latest transcript to backend first
+      meeting.status = 'processing';
+      saveMeetings();
+
+      const resp = await fetch(base + `/api/meetings/${meeting.id}/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.detail || 'Extraction failed');
+      }
+
+      const extraction = await resp.json();
+      meeting.status = 'processed';
+      meeting.summary = extraction.summary || [];
+      meeting.decisions = extraction.decisions || [];
+      meeting.openQuestions = extraction.openQuestions || [];
+      meeting.extractionRaw = extraction;
+      saveMeetings();
+
+      spinner.style.display = 'none';
+      panel.innerHTML = renderExtractionResults(meeting);
+      wireExtractionActions(meeting);
+
+      // Update status badge in modal header
+      const statusBadge = $('meeting-detail-modal').querySelector('.meeting-status');
+      if (statusBadge) { statusBadge.className = 'meeting-status processed'; statusBadge.textContent = 'processed'; }
+
+      toast('Action items extracted successfully!', 'success');
+    } catch (e) {
+      spinner.style.display = 'none';
+      meeting.status = 'failed';
+      saveMeetings();
+      panel.innerHTML = `<div style="color:var(--red);padding:12px;font-size:13px;">Extraction failed: ${esc(e.message)}</div>`;
+      if (extractBtn) extractBtn.style.display = '';
+      toast('Extraction failed: ' + e.message, 'error');
+    }
+  }
+
+  function renderExtractionResults(meeting) {
+    const ext = meeting.extractionRaw || {};
+    const summary = ext.summary || meeting.summary || [];
+    const decisions = ext.decisions || meeting.decisions || [];
+    const openQs = ext.openQuestions || meeting.openQuestions || [];
+    const items = ext.actionItems || [];
+    const alreadyAdded = new Set(meeting.actionItemIds || []);
+
+    let html = '<div class="extraction-panel">';
+    html += '<div class="extraction-header"><h3>Extraction Results</h3></div>';
+
+    if (summary.length) {
+      html += `<div class="extraction-section"><h4>Summary</h4><ul>${summary.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>`;
+    }
+    if (decisions.length) {
+      html += `<div class="extraction-section"><h4>Decisions</h4><ul>${decisions.map(d => `<li>${esc(d)}</li>`).join('')}</ul></div>`;
+    }
+    if (openQs.length) {
+      html += `<div class="extraction-section"><h4>Open Questions</h4><ul>${openQs.map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>`;
+    }
+
+    if (items.length) {
+      html += `<div class="extraction-section"><h4>Action Items</h4>`;
+      items.forEach((item, i) => {
+        const checked = !alreadyAdded.size ? 'checked' : '';
+        html += `
+          <div class="extraction-item">
+            <input type="checkbox" data-idx="${i}" ${checked} />
+            <div class="extraction-item-body">
+              <div class="extraction-item-title">${esc(item.title)}</div>
+              ${item.desc ? `<div class="extraction-item-desc">${esc(item.desc)}</div>` : ''}
+              <div class="extraction-item-meta">
+                ${item.assignee ? `<span class="tag tag-custom">${esc(item.assignee)}</span>` : ''}
+                ${item.priority ? `<span class="tag tag-${item.priority}">${item.priority}</span>` : ''}
+                ${item.dueHint ? `<span class="tag tag-custom">${esc(item.dueHint)}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      });
+      html += `</div>`;
+
+      if (!alreadyAdded.size) {
+        html += `<div style="text-align:right;margin-top:10px;">
+          <button class="toolbar-btn primary" id="md-add-to-backlog">Add Selected to Backlog</button>
+        </div>`;
+      } else {
+        html += `<div style="padding:8px 0;font-size:12px;color:var(--green);">Action items already added to backlog.</div>`;
+      }
+    } else if (meeting.status === 'processed') {
+      html += `<div style="padding:8px 0;font-size:13px;color:var(--muted);">No action items found in this transcript.</div>`;
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function wireExtractionActions(meeting) {
+    const btn = $('md-add-to-backlog');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const ext = meeting.extractionRaw || {};
+      const items = ext.actionItems || [];
+      const panel = $('md-extraction-panel');
+      const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+      const addedIds = [];
+
+      const proj = projects.find(p => p.id === activeId) || projects[0];
+      if (!proj) { toast('No project found', 'error'); return; }
+      const defaultLane = proj.lanes.find(l => l.id === 'backlog' || l.id === 'to-do') || proj.lanes[0];
+
+      checkboxes.forEach(cb => {
+        if (!cb.checked) return;
+        const idx = parseInt(cb.dataset.idx);
+        const item = items[idx];
+        if (!item) return;
+
+        const newItem = {
+          id: uid(),
+          title: item.title,
+          desc: item.desc || '',
+          priority: item.priority || 'p3',
+          type: item.type || (proj.types ? proj.types[0] : 'eng'),
+          tags: item.tags || [],
+          created: today(),
+          due: item.dueHint || '',
+          voiceNote: null,
+          voiceTranscript: '',
+          meetingId: meeting.id,
+          meetingTitle: meeting.title,
+          laneId: defaultLane.id,
+          laneTitle: defaultLane.title,
+        };
+
+        const lane = proj.lanes.find(l => l.id === (item.laneId || defaultLane.id)) || defaultLane;
+        lane.items.push(newItem);
+        addedIds.push(newItem.id);
+      });
+
+      if (addedIds.length) {
+        meeting.actionItemIds = [...(meeting.actionItemIds || []), ...addedIds];
+        save();
+        saveMeetings();
+        render();
+        toast(`${addedIds.length} action item${addedIds.length > 1 ? 's' : ''} added to backlog`, 'success');
+        // Re-render extraction panel to show "already added"
+        panel.innerHTML = renderExtractionResults(meeting);
+        renderMeetingsView();
+      } else {
+        toast('No items selected', 'error');
+      }
+    });
+  }
+
+  // ── Attendees chip input helper ──
+
+  function setupAttendeesInput(inputId, containerId, attendees) {
+    const input = $(inputId);
+    const container = $(containerId);
+
+    function renderChips() {
+      container.querySelectorAll('.attendee-chip').forEach(c => c.remove());
+      attendees.forEach((name, i) => {
+        const chip = document.createElement('span');
+        chip.className = 'attendee-chip';
+        chip.innerHTML = `${esc(name)} <span class="remove" data-idx="${i}">&times;</span>`;
+        container.insertBefore(chip, input);
+      });
+      container.querySelectorAll('.remove').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          attendees.splice(parseInt(btn.dataset.idx), 1);
+          renderChips();
+        });
+      });
+    }
+
+    input.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+        e.preventDefault();
+        attendees.push(input.value.trim().replace(',', ''));
+        input.value = '';
+        renderChips();
+      }
+      if (e.key === 'Backspace' && !input.value && attendees.length) {
+        attendees.pop();
+        renderChips();
+      }
+    });
+
+    container.addEventListener('click', () => input.focus());
+  }
+
+  // ── File upload helpers ──
+
+  function setupUploadZone(zoneId, textareaId) {
+    const zone = $(zoneId);
+    const textarea = $(textareaId);
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) readTranscriptFile(file, textarea);
+    });
+  }
+
+  function setupUploadClick(zoneId, textareaId) {
+    const zone = $(zoneId);
+    const textarea = $(textareaId);
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt,.md,.vtt,.srt';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    zone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) readTranscriptFile(fileInput.files[0], textarea);
+      fileInput.value = '';
+    });
+  }
+
+  function readTranscriptFile(file, textarea) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['txt', 'md', 'vtt', 'srt'].includes(ext)) {
+      toast('Unsupported file type. Use .txt, .md, .vtt, or .srt', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      let text = e.target.result;
+      // Strip VTT/SRT formatting
+      if (ext === 'vtt') {
+        text = text.replace(/^WEBVTT[\s\S]*?\n\n/, '');
+        text = text.replace(/\d{2}:\d{2}[:.]\d{3}\s*-->\s*\d{2}:\d{2}[:.]\d{3}[^\n]*/g, '');
+        text = text.replace(/\n{3,}/g, '\n\n').trim();
+      } else if (ext === 'srt') {
+        text = text.replace(/^\d+\s*\n/gm, '');
+        text = text.replace(/\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}[^\n]*/g, '');
+        text = text.replace(/\n{3,}/g, '\n\n').trim();
+      }
+      textarea.value = text;
+      toast(`Loaded ${file.name} (${text.split(/\s+/).length} words)`);
+    };
+    reader.readAsText(file);
+  }
+
+  // ── Navigate to meeting from board ──
+
+  function navigateToMeeting(meetingId) {
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (!meeting) return;
+    switchView('meetings');
+    setTimeout(() => openMeetingDetailModal(meeting), 100);
+  }
+
+  // ═════════════════════════════════════════════════════
   //  INIT
   // ═════════════════════════════════════════════════════
 
   load();
+  loadMeetings();
   render();
   setupQuickAdd();
   setupTouchDragDrop();
   setupMobileSearch();
+  setupViewSwitcher();
   startInboxSync();
 
-  // Add Q shortcut for quick add
+  // Keyboard shortcuts
   document.addEventListener('keydown', e => {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
     if (document.querySelector('.modal-overlay.open')) return;
     if (e.key === 'q') { e.preventDefault(); $('quick-add-input').focus(); }
+    if (e.key === 'm' || e.key === 'M') { e.preventDefault(); switchView(currentView === 'meetings' ? 'board' : 'meetings'); }
   });
 
 })();
