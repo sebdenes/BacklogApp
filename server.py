@@ -269,12 +269,14 @@ async def describe_image(request: Request, file: UploadFile = File(...)):
 
     try:
         prompt = (
-            "Describe this image for a task/note capture. Return ONLY valid JSON with keys: "
-            "title (concise, max 80 chars), description (what you see and any action items), "
-            "tags (1-3 relevant tags)."
+            f"Look at the image at {tmp_path} and describe what you see. "
+            "This was sent as a quick capture from a phone. Return ONLY valid JSON with keys: "
+            "title (concise description of what's in the image, max 80 chars), "
+            "description (detailed description of the image content, any text visible, any action items implied), "
+            "tags (1-3 relevant tags based on content)."
         )
         proc = await asyncio.create_subprocess_exec(
-            "claude", "-p", prompt, "--file", tmp_path, "--output-format", "json",
+            "claude", "-p", prompt, "--allowedTools", "Read", "--output-format", "json",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
