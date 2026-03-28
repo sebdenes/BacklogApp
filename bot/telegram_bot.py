@@ -1,16 +1,14 @@
 """Cortex Telegram Bot — capture text, voice, and photos on the go.
 
-Messages are classified by Claude Code CLI and posted to the Cortex API.
+Messages are classified via the Cortex API (which uses Claude Code CLI)
+and posted to the inbox.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
-import shutil
 import tempfile
-from pathlib import Path
 
 import httpx
 from telegram import Update
@@ -55,119 +53,30 @@ def _check_user(update: Update) -> bool:
     return update.effective_user and update.effective_user.id in ALLOWED_USERS
 
 
-async def _classify_with_claude(text: str) -> dict:
-    """Call Claude Code CLI to classify a capture into a backlog item."""
-    if not shutil.which("claude"):
-        log.warning("Claude CLI not found, using raw text")
-        return {"title": text[:120], "description": text, "priority": "", "tags": []}
-
-    prompt = (
-        "Classify this note into a backlog item. Return ONLY valid JSON with keys: "
-        "title (concise, max 80 chars), description (full context), "
-        "priority (p1=urgent, p2=important, p3=later), tags (1-3 relevant tags). "
-        "Note: " + text
-    )
-
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "claude", "-p", prompt, "--output-format", "json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
-
-        if proc.returncode != 0:
-            log.error("Claude classify failed (rc=%d): %s", proc.returncode, stderr.decode()[:500])
-            return {"title": text[:120], "description": text, "priority": "", "tags": []}
-
-        raw = json.loads(stdout.decode())
-        result_text = raw.get("result", raw) if isinstance(raw, dict) else raw
-        if isinstance(result_text, str):
-            t = result_text.strip()
-            # Strip markdown code fences (```json ... ``` or ``` ... ```)
-            if t.startswith("```"):
-                # Remove opening fence line
-                t = t.split("\n", 1)[1] if "\n" in t else t[3:]
-            if t.endswith("```"):
-                t = t[:-3]
-            t = t.strip()
-            parsed = json.loads(t)
-            log.info("Classified: %s", json.dumps(parsed, ensure_ascii=False)[:200])
-            return parsed
-        return result_text
-
-    except asyncio.TimeoutError:
-        log.error("Classification timed out")
-        return {"title": text[:120], "description": text, "priority": "", "tags": []}
-    except json.JSONDecodeError as e:
-        log.error("Classification JSON parse failed: %s — raw: %s", e, result_text[:200] if 'result_text' in dir() else "n/a")
-        return {"title": text[:120], "description": text, "priority": "", "tags": []}
-    except Exception as e:
-        log.error("Classification failed: %s", e)
-        return {"title": text[:120], "description": text, "priority": "", "tags": []}
+async def _classify_with_cortex(text: str) -> dict:
+    """Call Cortex API /api/classify to classify a capture."""
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        try:
+            resp = await client.post(
+                f"{CORTEX_API}/api/classify",
+                json={"text": text},
+                headers={**_auth_headers(), "Content-Type": "application/json"},
+            )
+            if resp.status_code == 200:
+                result = resp.json()
+                log.info("Classified: %s", json.dumps(result, ensure_ascii=False)[:200])
+                return result
+            log.error("Classify API error: %d %s", resp.status_code, resp.text[:200])
+        except Exception as e:
+            log.error("Classify API failed: %s", e)
+    return {"title": text[:120], "description": text, "priority": "", "tags": []}
 
 
 async def _transcribe_voice(file_path: str) -> str:
-    """Transcribe a voice message using Claude Code CLI."""
-    if not shutil.which("claude"):
-        return "[Voice message — Claude CLI not available for transcription]"
-
-    prompt = f"Transcribe this audio file and return only the transcribed text, nothing else."
-
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "claude", "-p", prompt, "--file", file_path, "--output-format", "json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
-
-        if proc.returncode != 0:
-            log.error("Transcription failed: %s", stderr.decode()[:200])
-            return "[Voice message — transcription failed]"
-
-        raw = json.loads(stdout.decode())
-        result = raw.get("result", raw) if isinstance(raw, dict) else raw
-        return str(result).strip()
-
-    except Exception as e:
-        log.error("Transcription error: %s", e)
-        return "[Voice message — transcription error]"
-
-
-async def _describe_photo(file_path: str, caption: str = "") -> str:
-    """Describe a photo using Claude Code CLI."""
-    if not shutil.which("claude"):
-        return caption or "[Photo — Claude CLI not available]"
-
-    context = f" The user added this caption: \"{caption}\"" if caption else ""
-    prompt = f"Describe what's in this image in 1-2 sentences for a task/note capture.{context} Then suggest a short title (max 80 chars) and any action items. Return ONLY JSON: {{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"]}}"
-
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "claude", "-p", prompt, "--file", file_path, "--output-format", "json",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
-
-        if proc.returncode != 0:
-            return caption or "[Photo — description failed]"
-
-        raw = json.loads(stdout.decode())
-        result = raw.get("result", raw) if isinstance(raw, dict) else raw
-        if isinstance(result, str):
-            t = result.strip()
-            if t.startswith("```"):
-                t = t.split("\n", 1)[1] if "\n" in t else t[3:]
-            if t.endswith("```"):
-                t = t[:-3]
-            return t.strip()
-        return json.dumps(result)
-
-    except Exception as e:
-        log.error("Photo description error: %s", e)
-        return caption or "[Photo — description error]"
+    """Voice transcription — currently returns placeholder.
+    TODO: Add server-side transcription endpoint.
+    """
+    return "[Voice message received — transcription coming soon]"
 
 
 async def _post_to_cortex(item: dict) -> bool:
@@ -230,7 +139,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     msg = await update.message.reply_text("Classifying...")
 
-    classified = await _classify_with_claude(text)
+    classified = await _classify_with_cortex(text)
 
     item = {
         "title": classified.get("title", text[:120]),
@@ -324,24 +233,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         tmp_path = tmp.name
 
     try:
-        result_text = await _describe_photo(tmp_path, caption)
-
-        # Try to parse as JSON from Claude
-        try:
-            result = json.loads(result_text)
-            title = result.get("title", caption or "Photo capture")
-            desc = result.get("description", caption)
-            tags = result.get("tags", [])
-        except (json.JSONDecodeError, TypeError):
-            title = caption or "Photo capture"
-            desc = result_text
-            tags = []
+        text = caption or "Photo capture"
+        classified = await _classify_with_cortex(text)
 
         item = {
-            "title": title[:120],
-            "description": desc,
-            "priority": "p3",
-            "tags": tags + ["telegram", "photo"],
+            "title": classified.get("title", text[:120]),
+            "description": classified.get("description", text),
+            "priority": classified.get("priority", "p3"),
+            "tags": classified.get("tags", []) + ["telegram", "photo"],
             "source": "telegram-photo",
         }
 

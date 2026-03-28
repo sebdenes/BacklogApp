@@ -144,6 +144,56 @@ async def health():
     return {"status": "ok", "version": APP_VERSION}
 
 
+# ── Classify (Claude Code CLI) ────────────────────────────────────────────────
+
+@app.post("/api/classify")
+async def classify_text(request: Request):
+    """Classify a note into a backlog item using Claude Code CLI."""
+    _require_auth(request)
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+
+    if not shutil.which("claude"):
+        raise HTTPException(status_code=503, detail="Claude CLI not available")
+
+    prompt = (
+        "Classify this note into a backlog item. Return ONLY valid JSON with keys: "
+        "title (concise, max 80 chars), description (full context), "
+        "priority (p1=urgent, p2=important, p3=later), tags (1-3 relevant tags). "
+        "Note: " + text
+    )
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "claude", "-p", prompt, "--output-format", "json",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
+
+        if proc.returncode != 0:
+            log.error("Classify failed (rc=%d): %s", proc.returncode, stderr.decode()[:500])
+            raise HTTPException(status_code=502, detail="Classification failed")
+
+        raw = json.loads(stdout.decode())
+        result_text = raw.get("result", raw) if isinstance(raw, dict) else raw
+        if isinstance(result_text, str):
+            t = result_text.strip()
+            if t.startswith("```"):
+                t = t.split("\n", 1)[1] if "\n" in t else t[3:]
+            if t.endswith("```"):
+                t = t[:-3]
+            return json.loads(t.strip())
+        return result_text
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Classification timed out")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="Failed to parse classification result")
+
+
 # ── Backlog CRUD ──────────────────────────────────────────────────────────────
 
 @app.get("/api/backlog")
