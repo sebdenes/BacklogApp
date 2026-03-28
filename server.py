@@ -214,6 +214,81 @@ async def save_backlog(request: Request):
     return {"status": "ok"}
 
 
+@app.get("/api/items/search")
+async def search_items(request: Request, q: str = ""):
+    """Search items by title across all projects. Returns matches with location."""
+    _require_auth(request)
+    if not BACKLOG_FILE.exists():
+        return JSONResponse({"items": [], "count": 0})
+    projects = json.loads(BACKLOG_FILE.read_text())
+    if isinstance(projects, dict):
+        projects = projects.get("projects", [])
+    q_lower = q.lower()
+    results = []
+    for p in projects:
+        for lane in p.get("lanes", []):
+            for item in lane.get("items", []):
+                if q_lower in (item.get("title") or "").lower():
+                    results.append({
+                        **item,
+                        "projectId": p["id"],
+                        "projectName": p["name"],
+                        "laneId": lane["id"],
+                        "laneTitle": lane["title"],
+                    })
+    return JSONResponse({"items": results, "count": len(results)})
+
+
+@app.patch("/api/items/{item_id}/move")
+async def move_item(item_id: str, request: Request):
+    """Move an item to a different lane. Body: {laneId, priority?}"""
+    _require_auth(request)
+    if not BACKLOG_FILE.exists():
+        raise HTTPException(status_code=404, detail="No backlog data")
+    body = await request.json()
+    target_lane = body.get("laneId", "")
+    new_priority = body.get("priority")
+
+    projects = json.loads(BACKLOG_FILE.read_text())
+    if isinstance(projects, dict):
+        projects = projects.get("projects", [])
+
+    # Find and move the item
+    found = None
+    source_lane = None
+    target_project = None
+    for p in projects:
+        for lane in p.get("lanes", []):
+            for item in lane.get("items", []):
+                if item.get("id") == item_id:
+                    found = item
+                    source_lane = lane
+                    target_project = p
+                    break
+            if found:
+                break
+        if found:
+            break
+
+    if not found:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # Update priority if provided
+    if new_priority:
+        found["priority"] = new_priority
+
+    # Move to target lane
+    if target_lane and target_lane != source_lane["id"]:
+        dest = next((l for l in target_project["lanes"] if l["id"] == target_lane), None)
+        if not dest:
+            raise HTTPException(status_code=400, detail=f"Lane '{target_lane}' not found")
+        source_lane["items"] = [i for i in source_lane["items"] if i["id"] != item_id]
+        dest["items"].append(found)
+
+    _atomic_write(BACKLOG_FILE, json.dumps(projects, indent=2))
+    return {"status": "ok", "item": found["title"], "lane": target_lane or source_lane["id"]}
+
+
 # ── Inbox (webhook receiver + poll endpoint) ──────────────────────────────────
 
 @app.post("/api/backlog/inbox")
