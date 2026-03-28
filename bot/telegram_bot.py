@@ -61,23 +61,12 @@ async def _classify_with_claude(text: str) -> dict:
         log.warning("Claude CLI not found, using raw text")
         return {"title": text[:120], "description": text, "priority": "", "tags": []}
 
-    prompt = f"""\
-Classify this captured note into a backlog item. Return ONLY valid JSON:
-{{
-  "title": "concise title (max 80 chars)",
-  "description": "full context",
-  "priority": "p1 or p2 or p3",
-  "tags": ["tag1", "tag2"]
-}}
-
-Rules:
-- title: short, actionable summary
-- priority: p1 = urgent/blocking, p2 = important/soon, p3 = nice-to-have/later
-- tags: 1-3 relevant tags (e.g. bug, feature, idea, personal, work, meeting)
-- If it's a quick thought or note, use p3
-
-Note:
-\"\"\"{text}\"\"\""""
+    prompt = (
+        "Classify this note into a backlog item. Return ONLY valid JSON with keys: "
+        "title (concise, max 80 chars), description (full context), "
+        "priority (p1=urgent, p2=important, p3=later), tags (1-3 relevant tags). "
+        "Note: " + text
+    )
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -85,24 +74,35 @@ Note:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
 
         if proc.returncode != 0:
-            log.error("Claude classify failed: %s", stderr.decode()[:200])
+            log.error("Claude classify failed (rc=%d): %s", proc.returncode, stderr.decode()[:500])
             return {"title": text[:120], "description": text, "priority": "", "tags": []}
 
         raw = json.loads(stdout.decode())
         result_text = raw.get("result", raw) if isinstance(raw, dict) else raw
         if isinstance(result_text, str):
             t = result_text.strip()
+            # Strip markdown code fences (```json ... ``` or ``` ... ```)
             if t.startswith("```"):
+                # Remove opening fence line
                 t = t.split("\n", 1)[1] if "\n" in t else t[3:]
             if t.endswith("```"):
                 t = t[:-3]
-            return json.loads(t.strip())
+            t = t.strip()
+            parsed = json.loads(t)
+            log.info("Classified: %s", json.dumps(parsed, ensure_ascii=False)[:200])
+            return parsed
         return result_text
 
-    except (asyncio.TimeoutError, json.JSONDecodeError, Exception) as e:
+    except asyncio.TimeoutError:
+        log.error("Classification timed out")
+        return {"title": text[:120], "description": text, "priority": "", "tags": []}
+    except json.JSONDecodeError as e:
+        log.error("Classification JSON parse failed: %s — raw: %s", e, result_text[:200] if 'result_text' in dir() else "n/a")
+        return {"title": text[:120], "description": text, "priority": "", "tags": []}
+    except Exception as e:
         log.error("Classification failed: %s", e)
         return {"title": text[:120], "description": text, "priority": "", "tags": []}
 
