@@ -1548,9 +1548,11 @@ body {
       const data = await resp.json();
       if (Array.isArray(data) && data.length > 0) {
         _backendAvailable = true;
-        // Only use backend data if localStorage is empty or backend is newer
-        const localRaw = localStorage.getItem(STORAGE_KEY);
-        if (!localRaw || !JSON.parse(localRaw).length) {
+        // Count total items in backend vs local
+        const backendItems = data.reduce((s, p) => s + (p.lanes || []).reduce((s2, l) => s2 + (l.items || []).length, 0), 0);
+        const localItems = projects.reduce((s, p) => s + (p.lanes || []).reduce((s2, l) => s2 + (l.items || []).length, 0), 0);
+        // Use backend if it has more data, or if local is just the seed
+        if (backendItems > localItems || !localStorage.getItem(STORAGE_KEY) || projects.length <= 1 && localItems <= 2) {
           projects = data;
           activeId = projects[0]?.id;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
