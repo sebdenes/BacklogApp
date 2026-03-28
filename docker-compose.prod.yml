@@ -6,6 +6,7 @@ services:
       - "${PORT:-8000}:8000"
     volumes:
       - backlog-data:/data
+      - claude-config:/root/.claude
     environment:
       - DATA_DIR=/data
       - BACKLOG_API_KEY=${BACKLOG_API_KEY:-}
@@ -31,3 +32,4 @@ services:
 
 volumes:
   backlog-data:
+  claude-config:
