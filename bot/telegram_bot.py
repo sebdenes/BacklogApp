@@ -239,7 +239,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 f"Added to Cortex\n\n"
                 f"🟢 {item['title']}\n"
                 f"{tags_str}\n\n"
-                f"{desc[:300]}"
+                f"{item['description'][:300]}"
             )
         else:
             await msg.edit_text("Failed to add to Cortex.")
